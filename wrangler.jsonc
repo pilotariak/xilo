@@ -1,0 +1,29 @@
+{
+  "$schema": "./node_modules/wrangler/config-schema.json",
+  "name": "xilo",
+  "main": "src/index.ts",
+  "compatibility_date": "2026-04-18",
+  "compatibility_flags": ["nodejs_compat_v2"],
+  "observability": {
+    "enabled": true
+  },
+
+  // Secrets set via: npx wrangler secret put SLACK_SIGNING_SECRET
+  //                  npx wrangler secret put SLACK_BOT_TOKEN
+  //
+  // Environments
+  "env": {
+    "staging": {
+      "name": "xilo-staging",
+      "vars": {
+        "ENVIRONMENT": "staging"
+      }
+    },
+    "production": {
+      "name": "xilo",
+      "vars": {
+        "ENVIRONMENT": "production"
+      }
+    }
+  }
+}

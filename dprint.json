@@ -1,0 +1,23 @@
+{
+  "$schema": "https://dprint.dev/schemas/v0.json",
+  "lineWidth": 100,
+  "typescript": {
+    "semiColons": "always",
+    "quoteStyle": "alwaysSingle",
+    "trailingCommas": "always",
+    "useBraces": "always"
+  },
+  "json": {},
+  "markdown": {
+    "lineWidth": 100
+  },
+  "toml": {},
+  "includes": ["**/*.{ts,json,md,toml}"],
+  "excludes": ["node_modules", "dist", ".wrangler", "package-lock.json"],
+  "plugins": [
+    "https://plugins.dprint.dev/typescript-0.95.15.wasm",
+    "https://plugins.dprint.dev/json-0.21.3.wasm",
+    "https://plugins.dprint.dev/markdown-0.21.1.wasm",
+    "https://plugins.dprint.dev/toml-0.7.0.wasm"
+  ]
+}
