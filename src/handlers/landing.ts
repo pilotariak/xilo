@@ -665,17 +665,17 @@ function renderHtml(): string {
             </div>
           </div>
           <div class="command-row" role="listitem">
-            <span class="command-chip">/xilo ping</span>
+            <span class="command-chip">/xilo version</span>
             <div class="command-desc">
-              <strong>Health check</strong>
-              Confirms the bot is live and responding. Posted to the channel so everyone can see.
+              <strong>Show bot version</strong>
+              Displays the current Xilo version — only visible to you.
             </div>
           </div>
           <div class="command-row" role="listitem">
-            <span class="command-chip">/xilo hello [message]</span>
+            <span class="command-chip">/xilo ping</span>
             <div class="command-desc">
-              <strong>Greet the channel</strong>
-              Posts a friendly greeting with your optional message. Great for announcements.
+              <strong>Say hello</strong>
+              Posts a greeting with your name to the channel so everyone can see.
             </div>
           </div>
         </div>
