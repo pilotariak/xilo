@@ -581,7 +581,7 @@ function renderHtml(): string {
         <li><a href="#setup">Setup</a></li>
         <li><a href="https://github.com/Pilotariak/xilo">GitHub</a></li>
       </ul>
-      <a href="https://slack.com/oauth/v2/authorize" class="nav-cta">Add to Slack</a>
+      <a href="https://github.com/Pilotariak/xilo" class="nav-cta">GitHub</a>
     </div>
   </nav>
 
@@ -596,14 +596,7 @@ function renderHtml(): string {
           and team updates delivered directly where your community talks.
         </p>
         <div class="hero-actions">
-          <a href="https://slack.com/oauth/v2/authorize" class="btn-primary">
-            <!-- Slack icon -->
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
-              <path d="M5.042 15.165a2.528 2.528 0 0 1-2.52 2.523A2.528 2.528 0 0 1 0 15.165a2.527 2.527 0 0 1 2.522-2.52h2.52v2.52zM6.313 15.165a2.527 2.527 0 0 1 2.521-2.52 2.527 2.527 0 0 1 2.521 2.52v6.313A2.528 2.528 0 0 1 8.834 24a2.528 2.528 0 0 1-2.521-2.522v-6.313zM8.834 5.042a2.528 2.528 0 0 1-2.521-2.52A2.528 2.528 0 0 1 8.834 0a2.528 2.528 0 0 1 2.521 2.522v2.52H8.834zM8.834 6.313a2.528 2.528 0 0 1 2.521 2.521 2.528 2.528 0 0 1-2.521 2.521H2.522A2.528 2.528 0 0 1 0 8.834a2.528 2.528 0 0 1 2.522-2.521h6.312zM18.956 8.834a2.528 2.528 0 0 1 2.522-2.521A2.528 2.528 0 0 1 24 8.834a2.528 2.528 0 0 1-2.522 2.521h-2.522V8.834zM17.688 8.834a2.528 2.528 0 0 1-2.523 2.521 2.527 2.527 0 0 1-2.52-2.521V2.522A2.527 2.527 0 0 1 15.165 0a2.528 2.528 0 0 1 2.523 2.522v6.312zM15.165 18.956a2.528 2.528 0 0 1 2.523 2.522A2.528 2.528 0 0 1 15.165 24a2.527 2.527 0 0 1-2.52-2.522v-2.522h2.52zM15.165 17.688a2.527 2.527 0 0 1-2.52-2.523 2.526 2.526 0 0 1 2.52-2.52h6.313A2.527 2.527 0 0 1 24 15.165a2.528 2.528 0 0 1-2.522 2.523h-6.313z"/>
-            </svg>
-            Add to Slack
-          </a>
-          <a href="https://github.com/Pilotariak/xilo" class="btn-secondary">
+          <a href="https://github.com/Pilotariak/xilo" class="btn-primary">
             View on GitHub
           </a>
         </div>
@@ -618,7 +611,7 @@ function renderHtml(): string {
       <div class="container">
         <header class="section-header">
           <span class="eyebrow">Why Xilo</span>
-          <h2 class="section-title" id="features-title">Built for the fronton community</h2>
+          <h2 class="section-title" id="features-title">Built for the Pilotariak community</h2>
           <p class="section-subtitle">
             Xilo speaks your language — Basque pelota schedules, results, and community
             coordination without leaving Slack.
@@ -645,8 +638,8 @@ function renderHtml(): string {
             <div class="card-icon" aria-hidden="true">⚡</div>
             <h3 class="card-title">Always On</h3>
             <p class="card-body">
-              Runs on Cloudflare Workers — globally distributed, cold-start
-              under 1ms, zero maintenance.
+              Globally distributed, always available, zero maintenance
+              for your community.
             </p>
           </article>
         </div>
@@ -700,7 +693,7 @@ function renderHtml(): string {
           <article class="step">
             <h3 class="step-title">Install the app</h3>
             <p class="step-body">
-              Click <em>Add to Slack</em> and authorise Xilo for your workspace.
+              Ask your workspace admin to install Xilo for your workspace.
               Takes under a minute.
             </p>
           </article>
@@ -769,7 +762,7 @@ function renderHtml(): string {
       </div>
       <div class="footer-bottom">
         <p>© 2026 Pilotariak · <a href="https://github.com/Pilotariak/xilo/blob/main/LICENSE">Apache-2.0</a></p>
-        <p>Built on <a href="https://workers.cloudflare.com">Cloudflare Workers</a></p>
+        <p>Open source · <a href="https://github.com/Pilotariak/xilo">github.com/Pilotariak/xilo</a></p>
       </div>
     </div>
   </footer>

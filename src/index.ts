@@ -34,6 +34,24 @@ export default {
     // Read raw body once — needed both for signature verification and parsing
     const body = await request.text();
 
+    // Handle Slack's url_verification challenge before signature check.
+    // This is a one-time setup handshake: Slack sends it to confirm the
+    // endpoint is reachable before the app is fully configured with a
+    // signing secret. Echoing the challenge is safe — no auth is needed
+    // because the response carries no sensitive data.
+    if (url.pathname === '/slack/events') {
+      try {
+        const probe = JSON.parse(body,) as { type?: string; challenge?: string; };
+        if (probe.type === 'url_verification' && probe.challenge) {
+          return new Response(JSON.stringify({ challenge: probe.challenge, },), {
+            headers: { 'Content-Type': 'application/json', },
+          },);
+        }
+      } catch {
+        // Not JSON — fall through to normal signature-verified handling
+      }
+    }
+
     const isValid = await verifySlackSignature(request, body, env.SLACK_SIGNING_SECRET,);
     if (!isValid) {
       return errorResponse('Invalid Slack signature', 401,);
