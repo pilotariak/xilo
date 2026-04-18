@@ -1,0 +1,18 @@
+cff-version: 1.2.0
+title: xilo
+message: >-
+  If you use this software, please cite it using the
+  metadata from this file.
+type: software
+authors:
+  - given-names: Nicolas
+    family-names: Lamirault
+    email: nicolas.lamirault@gmail.com
+abstract: >-
+  Project description
+keywords:
+  - keyword-1
+  - keyword-2
+license: Apache-2.0
+repository-code: https://github.com/Pilotariak/xilo
+url: https://github.com/Pilotariak/xilo
