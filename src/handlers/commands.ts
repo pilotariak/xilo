@@ -6,6 +6,7 @@
 // SPDX-FileCopyrightText: Copyright (C) Nicolas Lamirault <nicolas.lamirault@gmail.com>
 // SPDX-License-Identifier: Apache-2.0
 
+import pkg from '../../package.json';
 import { channelText, ephemeralText, } from '../slack/response.js';
 import type { Env, SlashCommandPayload, } from '../types.js';
 
@@ -29,27 +30,27 @@ export async function handleSlashCommand(
  * /xilo - Main command for the Xilo bot.
  *
  * Subcommands:
- *   /xilo help       - Show help
- *   /xilo ping       - Health check
- *   /xilo hello      - Greet the user
+ *   /xilo help       - Show available commands
+ *   /xilo version    - Show Xilo version
+ *   /xilo ping       - Greet the user who called the command
  */
 async function handleXilo(
   payload: SlashCommandPayload,
   _env: Env,
   _ctx: ExecutionContext,
 ): Promise<Response> {
-  const [subcommand, ...args] = payload.text.trim().split(/\s+/,);
+  const [subcommand,] = payload.text.trim().split(/\s+/,);
 
   switch (subcommand) {
     case '':
     case 'help':
       return ephemeralText(buildHelpText(),);
 
-    case 'ping':
-      return channelText(`🏓 Pong! (@${payload.user_name})`,);
+    case 'version':
+      return ephemeralText(`Xilo version: \`${pkg.version}\``,);
 
-    case 'hello':
-      return channelText(`👋 Hello, @${payload.user_name}! ${args.join(' ',)}`,);
+    case 'ping':
+      return channelText(`Hello @${payload.user_name}!`,);
 
     default:
       return ephemeralText(
@@ -62,7 +63,7 @@ function buildHelpText(): string {
   return [
     '*Xilo Bot Commands*',
     '`/xilo help` — Show this help message',
-    '`/xilo ping` — Check if the bot is alive',
-    '`/xilo hello [message]` — Say hello to the channel',
+    '`/xilo version` — Show the Xilo bot version',
+    '`/xilo ping` — Say hello to the channel',
   ].join('\n',);
 }
