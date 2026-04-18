@@ -651,28 +651,28 @@ function renderHtml(): string {
       <div class="container">
         <header class="section-header">
           <span class="eyebrow">Slash Commands</span>
-          <h2 class="section-title" id="commands-title">Everything starts with <code style="font-size:0.85em;background:var(--red-soft);color:var(--red-dark);border-radius:6px;padding:2px 8px;">/xilo</code></h2>
+          <h2 class="section-title" id="commands-title">Simple slash commands</h2>
           <p class="section-subtitle">
-            Simple, composable commands. Type them in any channel where Xilo is invited.
+            Type them in any channel where Xilo is invited.
           </p>
         </header>
         <div class="commands-list" role="list">
           <div class="command-row" role="listitem">
-            <span class="command-chip">/xilo help</span>
+            <span class="command-chip">/help</span>
             <div class="command-desc">
               <strong>Show all commands</strong>
-              Returns the full list of available subcommands — only visible to you.
+              Returns the full list of available commands — only visible to you.
             </div>
           </div>
           <div class="command-row" role="listitem">
-            <span class="command-chip">/xilo version</span>
+            <span class="command-chip">/version</span>
             <div class="command-desc">
               <strong>Show bot version</strong>
               Displays the current Xilo version — only visible to you.
             </div>
           </div>
           <div class="command-row" role="listitem">
-            <span class="command-chip">/xilo ping</span>
+            <span class="command-chip">/ping</span>
             <div class="command-desc">
               <strong>Say hello</strong>
               Posts a greeting with your name to the channel so everyone can see.

@@ -15,46 +15,22 @@ import type { Env, SlashCommandPayload, } from '../types.js';
  */
 export async function handleSlashCommand(
   payload: SlashCommandPayload,
-  env: Env,
-  ctx: ExecutionContext,
-): Promise<Response> {
-  switch (payload.command) {
-    case '/xilo':
-      return handleXilo(payload, env, ctx,);
-    default:
-      return ephemeralText(`Unknown command: ${payload.command}`,);
-  }
-}
-
-/**
- * /xilo - Main command for the Xilo bot.
- *
- * Subcommands:
- *   /xilo help       - Show available commands
- *   /xilo version    - Show Xilo version
- *   /xilo ping       - Greet the user who called the command
- */
-async function handleXilo(
-  payload: SlashCommandPayload,
   _env: Env,
   _ctx: ExecutionContext,
 ): Promise<Response> {
-  const [subcommand,] = payload.text.trim().split(/\s+/,);
-
-  switch (subcommand) {
-    case '':
-    case 'help':
+  switch (payload.command) {
+    case '/help':
       return ephemeralText(buildHelpText(),);
 
-    case 'version':
+    case '/version':
       return ephemeralText(`Xilo version: \`${pkg.version}\``,);
 
-    case 'ping':
+    case '/ping':
       return channelText(`Hello @${payload.user_name}!`,);
 
     default:
       return ephemeralText(
-        `Unknown subcommand \`${subcommand}\`. Try \`/xilo help\` for a list of commands.`,
+        `Unknown command: \`${payload.command}\`. Try \`/help\` for a list of commands.`,
       );
   }
 }
@@ -62,8 +38,8 @@ async function handleXilo(
 function buildHelpText(): string {
   return [
     '*Xilo Bot Commands*',
-    '`/xilo help` — Show this help message',
-    '`/xilo version` — Show the Xilo bot version',
-    '`/xilo ping` — Say hello to the channel',
+    '`/help` — Show this help message',
+    '`/version` — Show the Xilo bot version',
+    '`/ping` — Say hello to the channel',
   ].join('\n',);
 }
