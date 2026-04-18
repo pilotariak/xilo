@@ -9,6 +9,7 @@
 import pkg from '../package.json';
 import { handleSlashCommand, } from './handlers/commands.js';
 import { handleEvent, } from './handlers/events.js';
+import { handleLanding, } from './handlers/landing.js';
 import { errorResponse, } from './slack/response.js';
 import { verifySlackSignature, } from './slack/verify.js';
 import type { Env, SlackEventPayload, SlashCommandPayload, } from './types.js';
@@ -18,6 +19,10 @@ export default {
     const url = new URL(request.url,);
 
     // Public routes (no Slack signature required)
+    if (url.pathname === '/') {
+      return handleLanding(request,);
+    }
+
     if (url.pathname === '/version') {
       return handleVersion(request,);
     }
