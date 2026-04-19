@@ -6,15 +6,19 @@
 // SPDX-FileCopyrightText: Copyright (C) Nicolas Lamirault <nicolas.lamirault@gmail.com>
 // SPDX-License-Identifier: Apache-2.0
 
-import { describe, expect, it, } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi, } from 'vitest';
 import pkg from '../../package.json';
 import type { Env, SlashCommandPayload, } from '../types.js';
 import { handleSlashCommand, } from './commands.js';
 
-const env: Env = { SLACK_SIGNING_SECRET: 'secret', SLACK_BOT_TOKEN: 'xoxb-test', };
+const env: Env = {
+  SLACK_SIGNING_SECRET: 'secret',
+  SLACK_BOT_TOKEN: 'xoxb-test',
+  FRONTIS_URL: 'http://localhost:4000/graphql',
+};
 const ctx = {} as ExecutionContext;
 
-function payload(command: string, user_name = 'alice',): SlashCommandPayload {
+function payload(command: string, user_name = 'alice', text = '',): SlashCommandPayload {
   return {
     token: 'tok',
     team_id: 'T1',
@@ -24,7 +28,7 @@ function payload(command: string, user_name = 'alice',): SlashCommandPayload {
     user_id: 'U1',
     user_name,
     command,
-    text: '',
+    text,
     response_url: 'https://hooks.slack.com/respond',
     trigger_id: 'trigger1',
     api_app_id: 'A1',
@@ -36,8 +40,26 @@ async function bodyOf(res: Response,): Promise<unknown> {
   return ct.includes('application/json',) ? res.json() : res.text();
 }
 
+function mockFetch(data: unknown,): void {
+  vi.stubGlobal(
+    'fetch',
+    vi.fn().mockResolvedValue({
+      ok: true,
+      json: () => Promise.resolve({ data, },),
+    },),
+  );
+}
+
+beforeEach(() => {
+  vi.unstubAllGlobals();
+},);
+
+afterEach(() => {
+  vi.unstubAllGlobals();
+},);
+
 describe('/help', () => {
-  it('returns ephemeral text listing the 3 commands', async () => {
+  it('returns ephemeral text listing all commands', async () => {
     const res = await handleSlashCommand(payload('/help',), env, ctx,);
     expect(res.status,).toBe(200,);
     const body = await bodyOf(res,) as { response_type: string; text: string; };
@@ -45,6 +67,10 @@ describe('/help', () => {
     expect(body.text,).toContain('/help',);
     expect(body.text,).toContain('/version',);
     expect(body.text,).toContain('/ping',);
+    expect(body.text,).toContain('/specialties',);
+    expect(body.text,).toContain('/clubs',);
+    expect(body.text,).toContain('/competitions',);
+    expect(body.text,).toContain('/results',);
   });
 });
 
@@ -66,6 +92,93 @@ describe('/ping', () => {
     expect(body.response_type,).toBe('in_channel',);
     expect(body.text,).toContain('Hello',);
     expect(body.text,).toContain('@alice',);
+  });
+});
+
+describe('/specialties', () => {
+  it('returns a formatted list of specialties', async () => {
+    mockFetch({
+      specialties: [{ id: '1', name: 'Place Libre', }, { id: '2', name: 'Trinquet', },],
+    },);
+    const res = await handleSlashCommand(payload('/specialties',), env, ctx,);
+    const body = await bodyOf(res,) as { response_type: string; text: string; };
+    expect(body.response_type,).toBe('ephemeral',);
+    expect(body.text,).toContain('Place Libre',);
+    expect(body.text,).toContain('Trinquet',);
+  });
+
+  it('handles empty list gracefully', async () => {
+    mockFetch({ specialties: [], },);
+    const res = await handleSlashCommand(payload('/specialties',), env, ctx,);
+    const body = await bodyOf(res,) as { text: string; };
+    expect(body.text,).toContain('No specialties found',);
+  });
+
+  it('returns an error message when the gateway fails', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue({ ok: false, status: 500, statusText: 'Error', },),
+    );
+    const res = await handleSlashCommand(payload('/specialties',), env, ctx,);
+    const body = await bodyOf(res,) as { text: string; };
+    expect(body.text,).toContain('Failed to fetch specialties',);
+  });
+});
+
+describe('/clubs', () => {
+  it('returns a formatted list of clubs', async () => {
+    mockFetch({ clubs: [{ id: '10', name: 'Denek Bat', },], },);
+    const res = await handleSlashCommand(payload('/clubs',), env, ctx,);
+    const body = await bodyOf(res,) as { text: string; };
+    expect(body.text,).toContain('Denek Bat',);
+  });
+});
+
+describe('/competitions', () => {
+  it('returns a formatted list of competitions', async () => {
+    mockFetch({
+      competitions: [{ id: '5', name: 'Championnat LCAPB 2025-2026', source_id: null, },],
+    },);
+    const res = await handleSlashCommand(payload('/competitions',), env, ctx,);
+    const body = await bodyOf(res,) as { text: string; };
+    expect(body.text,).toContain('Championnat LCAPB 2025-2026',);
+  });
+});
+
+describe('/results', () => {
+  it('shows usage when no competitionId is provided', async () => {
+    const res = await handleSlashCommand(payload('/results', 'alice', '',), env, ctx,);
+    const body = await bodyOf(res,) as { text: string; };
+    expect(body.text,).toContain('Usage',);
+  });
+
+  it('returns formatted results for a competition', async () => {
+    mockFetch({
+      results: [
+        {
+          id: '99',
+          dateMatch: '2025-10-01',
+          phase: 'Finale',
+          scores: '15/10',
+          clubA: { id: '1', name: 'Denek Bat', },
+          clubB: { id: '2', name: 'Noizbait', },
+          specialty: { id: '3', name: 'Place Libre', },
+        },
+      ],
+    },);
+    const res = await handleSlashCommand(payload('/results', 'alice', '5',), env, ctx,);
+    const body = await bodyOf(res,) as { text: string; };
+    expect(body.text,).toContain('Denek Bat',);
+    expect(body.text,).toContain('Noizbait',);
+    expect(body.text,).toContain('Finale',);
+    expect(body.text,).toContain('15/10',);
+  });
+
+  it('handles empty results gracefully', async () => {
+    mockFetch({ results: [], },);
+    const res = await handleSlashCommand(payload('/results', 'alice', '999',), env, ctx,);
+    const body = await bodyOf(res,) as { text: string; };
+    expect(body.text,).toContain('No results found',);
   });
 });
 
