@@ -18,6 +18,11 @@ export interface Club {
   name: string;
 }
 
+export interface Category {
+  id: string;
+  name: string;
+}
+
 export interface Competition {
   id: string;
   name: string;
@@ -32,6 +37,7 @@ export interface Result {
   clubA: { id: string; name: string; };
   clubB: { id: string; name: string; };
   specialty: { id: string; name: string; };
+  category: { id: string; name: string; } | null;
 }
 
 // --- GraphQL queries ---
@@ -48,6 +54,12 @@ const LIST_CLUBS = `
   }
 `;
 
+const LIST_CATEGORIES = `
+  query ListCategories {
+    categories { id name }
+  }
+`;
+
 const LIST_COMPETITIONS = `
   query ListCompetitions {
     competitions { id name source_id }
@@ -55,8 +67,8 @@ const LIST_COMPETITIONS = `
 `;
 
 const LIST_RESULTS = `
-  query ListResults($competitionId: ID, $specialtyId: ID, $phase: String) {
-    results(competitionId: $competitionId, specialtyId: $specialtyId, phase: $phase) {
+  query ListResults($competitionId: ID, $specialtyId: ID, $categoryId: ID, $phase: String) {
+    results(competitionId: $competitionId, specialtyId: $specialtyId, categoryId: $categoryId, phase: $phase) {
       id
       dateMatch
       phase
@@ -64,6 +76,7 @@ const LIST_RESULTS = `
       clubA { id name }
       clubB { id name }
       specialty { id name }
+      category { id name }
     }
   }
 `;
@@ -107,6 +120,11 @@ export async function listClubs(gatewayUrl: string, league: string,): Promise<Cl
   return data.clubs;
 }
 
+export async function listCategories(gatewayUrl: string, league: string,): Promise<Category[]> {
+  const data = await gql<{ categories: Category[]; }>(gatewayUrl, league, LIST_CATEGORIES,);
+  return data.categories;
+}
+
 export async function listCompetitions(
   gatewayUrl: string,
   league: string,
@@ -118,7 +136,7 @@ export async function listCompetitions(
 export async function listResults(
   gatewayUrl: string,
   league: string,
-  filters: { competitionId?: string; specialtyId?: string; phase?: string; },
+  filters: { competitionId?: string; specialtyId?: string; categoryId?: string; phase?: string; },
 ): Promise<Result[]> {
   const data = await gql<{ results: Result[]; }>(gatewayUrl, league, LIST_RESULTS, filters,);
   return data.results;

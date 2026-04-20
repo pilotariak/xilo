@@ -7,7 +7,13 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import pkg from '../../package.json';
-import { listClubs, listCompetitions, listResults, listSpecialties, } from '../frontis/client.js';
+import {
+  listCategories,
+  listClubs,
+  listCompetitions,
+  listResults,
+  listSpecialties,
+} from '../frontis/client.js';
 import { channelText, ephemeralText, } from '../slack/response.js';
 import type { Env, SlashCommandPayload, } from '../types.js';
 
@@ -28,6 +34,9 @@ export async function handleSlashCommand(
 
     case '/ping':
       return channelText(`Hello @${payload.user_name}!`,);
+
+    case '/categories':
+      return handleCategories(env.FRONTIS_URL, payload.text.trim(),);
 
     case '/specialties':
       return handleSpecialties(env.FRONTIS_URL, payload.text.trim(),);
@@ -54,11 +63,29 @@ function buildHelpText(): string {
     '`/help` — Show this help message',
     '`/version` — Show the Xilo bot version',
     '`/ping` — Say hello to the channel',
+    '`/categories <league>` — List all player categories for a league',
     '`/specialties <league>` — List all Basque pelota disciplines (e.g. `lcapb`)',
     '`/clubs <league>` — List all clubs for a league',
     '`/competitions <league>` — List all competitions for a league',
-    '`/results <league> <competitionId> [phase]` — List match results for a competition',
+    '`/results <league> [competitionId=x] [specialtyId=x] [categoryId=x] [phase=x]` — List match results',
   ].join('\n',);
+}
+
+async function handleCategories(gatewayUrl: string, text: string,): Promise<Response> {
+  const [league,] = text.split(/\s+/,);
+  if (!league) {
+    return ephemeralText('Usage: `/categories <league>`\nExample: `/categories lcapb`',);
+  }
+  try {
+    const categories = await listCategories(gatewayUrl, league,);
+    if (categories.length === 0) {
+      return ephemeralText('No categories found.',);
+    }
+    const lines = categories.map((c,) => `• *${c.name}* (id: \`${c.id}\`)`);
+    return ephemeralText(['*Categories*', ...lines,].join('\n',),);
+  } catch (err) {
+    return ephemeralText(`Failed to fetch categories: ${String(err,)}`,);
+  }
 }
 
 async function handleSpecialties(gatewayUrl: string, text: string,): Promise<Response> {
@@ -112,30 +139,55 @@ async function handleCompetitions(gatewayUrl: string, text: string,): Promise<Re
   }
 }
 
+function parseResultsArgs(text: string,): {
+  league: string | undefined;
+  filters: { competitionId?: string; specialtyId?: string; categoryId?: string; phase?: string; };
+} {
+  const [league, ...rest] = text.split(/\s+/,);
+  const filters: {
+    competitionId?: string;
+    specialtyId?: string;
+    categoryId?: string;
+    phase?: string;
+  } = {};
+  for (const token of rest) {
+    const eq = token.indexOf('=',);
+    if (eq > 0) {
+      const key = token.slice(0, eq,);
+      const val = token.slice(eq + 1,);
+      if (
+        key === 'competitionId' || key === 'specialtyId' || key === 'categoryId' || key === 'phase'
+      ) {
+        filters[key] = val;
+      }
+    }
+  }
+  return { league: league || undefined, filters, };
+}
+
 async function handleResults(gatewayUrl: string, text: string,): Promise<Response> {
-  const [league, competitionId, phase,] = text.split(/\s+/,);
-  if (!league || !competitionId) {
+  const { league, filters, } = parseResultsArgs(text,);
+  if (!league) {
     return ephemeralText(
-      'Usage: `/results <league> <competitionId> [phase]`\nExample: `/results lcapb 72 Finale`',
+      [
+        'Usage: `/results <league> [competitionId=x] [specialtyId=x] [categoryId=x]`',
+        'Example: `/results lcapb competitionId=72 categoryId=1`',
+      ].join('\n',),
     );
   }
   try {
-    const results = await listResults(gatewayUrl, league, {
-      competitionId,
-      phase: phase ?? undefined,
-    },);
+    const results = await listResults(gatewayUrl, league, filters,);
     if (results.length === 0) {
-      return ephemeralText(`No results found for competition \`${competitionId}\`.`,);
+      return ephemeralText('No results found.',);
     }
     const lines = results.map((r,) => {
       const date = r.dateMatch ?? '?';
       const phaseLabel = r.phase ? ` [${r.phase}]` : '';
       const score = r.scores ?? '?';
-      return `• ${date}${phaseLabel} — *${r.clubA.name}* vs *${r.clubB.name}* ${score} (${r.specialty.name})`;
+      const categoryLabel = r.category ? ` — ${r.category.name}` : '';
+      return `• ${date}${phaseLabel} — *${r.clubA.name}* vs *${r.clubB.name}* ${score} (${r.specialty.name}${categoryLabel})`;
     },);
-    return ephemeralText(
-      [`*Results for competition \`${competitionId}\`*`, ...lines,].join('\n',),
-    );
+    return ephemeralText(['*Results*', ...lines,].join('\n',),);
   } catch (err) {
     return ephemeralText(`Failed to fetch results: ${String(err,)}`,);
   }

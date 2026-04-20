@@ -7,7 +7,13 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import { afterEach, beforeEach, describe, expect, it, vi, } from 'vitest';
-import { listClubs, listCompetitions, listResults, listSpecialties, } from './client.js';
+import {
+  listCategories,
+  listClubs,
+  listCompetitions,
+  listResults,
+  listSpecialties,
+} from './client.js';
 
 const GATEWAY = 'http://localhost:4000/graphql';
 
@@ -39,6 +45,20 @@ beforeEach(() => {
 afterEach(() => {
   vi.unstubAllGlobals();
 },);
+
+describe('listCategories', () => {
+  it('returns categories from the gateway', async () => {
+    mockFetch({ categories: [{ id: '1', name: '1ère Série', }, { id: '2', name: 'Seniors', },], },);
+    const result = await listCategories(GATEWAY, 'lcapb',);
+    expect(result,).toHaveLength(2,);
+    expect(result[0]!.name,).toBe('1ère Série',);
+  });
+
+  it('throws on HTTP error', async () => {
+    mockFetchError(500,);
+    await expect(listCategories(GATEWAY, 'lcapb',),).rejects.toThrow('Frontis request failed',);
+  });
+});
 
 describe('listSpecialties', () => {
   it('returns specialties from the gateway', async () => {
@@ -81,9 +101,14 @@ describe('listResults', () => {
       clubA: { id: '1', name: 'Denek Bat', },
       clubB: { id: '2', name: 'Noizbait', },
       specialty: { id: '3', name: 'Place Libre', },
+      category: { id: '1', name: '1ère Série', },
     };
     mockFetch({ results: [mockResult,], },);
-    const result = await listResults(GATEWAY, 'lcapb', { competitionId: '5', phase: 'Finale', },);
+    const result = await listResults(GATEWAY, 'lcapb', {
+      competitionId: '5',
+      categoryId: '1',
+      phase: 'Finale',
+    },);
     expect(result,).toHaveLength(1,);
     expect(result[0]!.phase,).toBe('Finale',);
   });
