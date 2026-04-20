@@ -9,14 +9,20 @@
       "name": "xilo-staging",
       "vars": {
         "ENVIRONMENT": "staging",
-        "FRONTIS_URL": "https://frontis-gateway.pilotariak.com/graphql"
+        "FRONTIS_URL": "https://frontis-gateway.pilotariak.com/graphql",
+        "AGENT_PROVIDER": "gemini",
+        "DEFAULT_LEAGUE": "",
+        "LOG_LEVEL": "debug"
       }
     },
     "production": {
       "name": "xilo",
       "vars": {
         "ENVIRONMENT": "production",
-        "FRONTIS_URL": "https://frontis-gateway.pilotariak.com/graphql"
+        "FRONTIS_URL": "https://frontis-gateway.pilotariak.com/graphql",
+        "AGENT_PROVIDER": "gemini",
+        "DEFAULT_LEAGUE": "",
+        "LOG_LEVEL": "info"
       }
     }
   },

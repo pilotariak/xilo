@@ -11,6 +11,20 @@ export interface Env {
   SLACK_BOT_TOKEN: string;
   FRONTIS_URL: string;
   ENVIRONMENT?: string;
+  /** Which AI provider to use for /ask: 'gemini' | 'mistral' | 'claude' (default: 'gemini') */
+  AGENT_PROVIDER?: string;
+  /** Anthropic API key — required when AGENT_PROVIDER=claude */
+  ANTHROPIC_API_KEY?: string;
+  /** Google AI API key — required when AGENT_PROVIDER=gemini */
+  GEMINI_API_KEY?: string;
+  /** Override the Gemini/Gemma model name (e.g. 'gemma-4-26b-a4b-it' for free Gemma 4) */
+  GEMINI_MODEL?: string;
+  /** Fallback league when the user doesn't specify one in their @mention or DM (e.g. 'lcapb') */
+  DEFAULT_LEAGUE?: string;
+  /** Pino log level: 'trace' | 'debug' | 'info' | 'warn' | 'error' (default: 'info') */
+  LOG_LEVEL?: string;
+  /** Mistral AI API key — required when AGENT_PROVIDER=mistral */
+  MISTRAL_API_KEY?: string;
 }
 
 // Slack slash command payload
@@ -72,7 +86,12 @@ export interface SlackEvent {
   user?: string;
   text?: string;
   channel?: string;
+  /** Message timestamp — use as thread_ts to reply in-thread. */
   ts?: string;
+  /** Set when the message is already inside a thread. */
+  thread_ts?: string;
+  /** 'im' for DMs, 'channel' for public channels, 'group' for private channels. */
+  channel_type?: string;
   bot_id?: string;
 }
 
