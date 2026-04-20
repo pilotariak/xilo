@@ -30,13 +30,13 @@ export async function handleSlashCommand(
       return channelText(`Hello @${payload.user_name}!`,);
 
     case '/specialties':
-      return handleSpecialties(env.FRONTIS_URL,);
+      return handleSpecialties(env.FRONTIS_URL, payload.text.trim(),);
 
     case '/clubs':
-      return handleClubs(env.FRONTIS_URL,);
+      return handleClubs(env.FRONTIS_URL, payload.text.trim(),);
 
     case '/competitions':
-      return handleCompetitions(env.FRONTIS_URL,);
+      return handleCompetitions(env.FRONTIS_URL, payload.text.trim(),);
 
     case '/results':
       return handleResults(env.FRONTIS_URL, payload.text.trim(),);
@@ -54,16 +54,20 @@ function buildHelpText(): string {
     '`/help` — Show this help message',
     '`/version` — Show the Xilo bot version',
     '`/ping` — Say hello to the channel',
-    '`/specialties` — List all Basque pelota disciplines',
-    '`/clubs` — List all clubs',
-    '`/competitions` — List all competitions',
-    '`/results <competitionId> [phase]` — List match results for a competition',
+    '`/specialties <league>` — List all Basque pelota disciplines (e.g. `lcapb`)',
+    '`/clubs <league>` — List all clubs for a league',
+    '`/competitions <league>` — List all competitions for a league',
+    '`/results <league> <competitionId> [phase]` — List match results for a competition',
   ].join('\n',);
 }
 
-async function handleSpecialties(gatewayUrl: string,): Promise<Response> {
+async function handleSpecialties(gatewayUrl: string, text: string,): Promise<Response> {
+  const [league,] = text.split(/\s+/,);
+  if (!league) {
+    return ephemeralText('Usage: `/specialties <league>`\nExample: `/specialties lcapb`',);
+  }
   try {
-    const specialties = await listSpecialties(gatewayUrl,);
+    const specialties = await listSpecialties(gatewayUrl, league,);
     if (specialties.length === 0) {
       return ephemeralText('No specialties found.',);
     }
@@ -74,9 +78,13 @@ async function handleSpecialties(gatewayUrl: string,): Promise<Response> {
   }
 }
 
-async function handleClubs(gatewayUrl: string,): Promise<Response> {
+async function handleClubs(gatewayUrl: string, text: string,): Promise<Response> {
+  const [league,] = text.split(/\s+/,);
+  if (!league) {
+    return ephemeralText('Usage: `/clubs <league>`\nExample: `/clubs lcapb`',);
+  }
   try {
-    const clubs = await listClubs(gatewayUrl,);
+    const clubs = await listClubs(gatewayUrl, league,);
     if (clubs.length === 0) {
       return ephemeralText('No clubs found.',);
     }
@@ -87,9 +95,13 @@ async function handleClubs(gatewayUrl: string,): Promise<Response> {
   }
 }
 
-async function handleCompetitions(gatewayUrl: string,): Promise<Response> {
+async function handleCompetitions(gatewayUrl: string, text: string,): Promise<Response> {
+  const [league,] = text.split(/\s+/,);
+  if (!league) {
+    return ephemeralText('Usage: `/competitions <league>`\nExample: `/competitions lcapb`',);
+  }
   try {
-    const competitions = await listCompetitions(gatewayUrl,);
+    const competitions = await listCompetitions(gatewayUrl, league,);
     if (competitions.length === 0) {
       return ephemeralText('No competitions found.',);
     }
@@ -101,14 +113,17 @@ async function handleCompetitions(gatewayUrl: string,): Promise<Response> {
 }
 
 async function handleResults(gatewayUrl: string, text: string,): Promise<Response> {
-  const [competitionId, phase,] = text.split(/\s+/,);
-  if (!competitionId) {
+  const [league, competitionId, phase,] = text.split(/\s+/,);
+  if (!league || !competitionId) {
     return ephemeralText(
-      'Usage: `/results <competitionId> [phase]`\nExample: `/results 42 Finale`',
+      'Usage: `/results <league> <competitionId> [phase]`\nExample: `/results lcapb 72 Finale`',
     );
   }
   try {
-    const results = await listResults(gatewayUrl, { competitionId, phase: phase ?? undefined, },);
+    const results = await listResults(gatewayUrl, league, {
+      competitionId,
+      phase: phase ?? undefined,
+    },);
     if (results.length === 0) {
       return ephemeralText(`No results found for competition \`${competitionId}\`.`,);
     }

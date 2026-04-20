@@ -72,12 +72,16 @@ const LIST_RESULTS = `
 
 async function gql<T,>(
   url: string,
+  league: string,
   query: string,
   variables?: Record<string, unknown>,
 ): Promise<T> {
   const res = await fetch(url, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json', },
+    headers: {
+      'Content-Type': 'application/json',
+      'X-Pilotariak-League': league,
+    },
     body: JSON.stringify({ query, variables, },),
   },);
   if (!res.ok) {
@@ -93,25 +97,29 @@ async function gql<T,>(
   return json.data;
 }
 
-export async function listSpecialties(gatewayUrl: string,): Promise<Specialty[]> {
-  const data = await gql<{ specialties: Specialty[]; }>(gatewayUrl, LIST_SPECIALTIES,);
+export async function listSpecialties(gatewayUrl: string, league: string,): Promise<Specialty[]> {
+  const data = await gql<{ specialties: Specialty[]; }>(gatewayUrl, league, LIST_SPECIALTIES,);
   return data.specialties;
 }
 
-export async function listClubs(gatewayUrl: string,): Promise<Club[]> {
-  const data = await gql<{ clubs: Club[]; }>(gatewayUrl, LIST_CLUBS,);
+export async function listClubs(gatewayUrl: string, league: string,): Promise<Club[]> {
+  const data = await gql<{ clubs: Club[]; }>(gatewayUrl, league, LIST_CLUBS,);
   return data.clubs;
 }
 
-export async function listCompetitions(gatewayUrl: string,): Promise<Competition[]> {
-  const data = await gql<{ competitions: Competition[]; }>(gatewayUrl, LIST_COMPETITIONS,);
+export async function listCompetitions(
+  gatewayUrl: string,
+  league: string,
+): Promise<Competition[]> {
+  const data = await gql<{ competitions: Competition[]; }>(gatewayUrl, league, LIST_COMPETITIONS,);
   return data.competitions;
 }
 
 export async function listResults(
   gatewayUrl: string,
+  league: string,
   filters: { competitionId?: string; specialtyId?: string; phase?: string; },
 ): Promise<Result[]> {
-  const data = await gql<{ results: Result[]; }>(gatewayUrl, LIST_RESULTS, filters,);
+  const data = await gql<{ results: Result[]; }>(gatewayUrl, league, LIST_RESULTS, filters,);
   return data.results;
 }

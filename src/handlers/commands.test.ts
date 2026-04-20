@@ -96,11 +96,17 @@ describe('/ping', () => {
 });
 
 describe('/specialties', () => {
+  it('shows usage when no league is provided', async () => {
+    const res = await handleSlashCommand(payload('/specialties',), env, ctx,);
+    const body = await bodyOf(res,) as { text: string; };
+    expect(body.text,).toContain('Usage',);
+  });
+
   it('returns a formatted list of specialties', async () => {
     mockFetch({
       specialties: [{ id: '1', name: 'Place Libre', }, { id: '2', name: 'Trinquet', },],
     },);
-    const res = await handleSlashCommand(payload('/specialties',), env, ctx,);
+    const res = await handleSlashCommand(payload('/specialties', 'alice', 'lcapb',), env, ctx,);
     const body = await bodyOf(res,) as { response_type: string; text: string; };
     expect(body.response_type,).toBe('ephemeral',);
     expect(body.text,).toContain('Place Libre',);
@@ -109,7 +115,7 @@ describe('/specialties', () => {
 
   it('handles empty list gracefully', async () => {
     mockFetch({ specialties: [], },);
-    const res = await handleSlashCommand(payload('/specialties',), env, ctx,);
+    const res = await handleSlashCommand(payload('/specialties', 'alice', 'lcapb',), env, ctx,);
     const body = await bodyOf(res,) as { text: string; };
     expect(body.text,).toContain('No specialties found',);
   });
@@ -119,35 +125,53 @@ describe('/specialties', () => {
       'fetch',
       vi.fn().mockResolvedValue({ ok: false, status: 500, statusText: 'Error', },),
     );
-    const res = await handleSlashCommand(payload('/specialties',), env, ctx,);
+    const res = await handleSlashCommand(payload('/specialties', 'alice', 'lcapb',), env, ctx,);
     const body = await bodyOf(res,) as { text: string; };
     expect(body.text,).toContain('Failed to fetch specialties',);
   });
 });
 
 describe('/clubs', () => {
+  it('shows usage when no league is provided', async () => {
+    const res = await handleSlashCommand(payload('/clubs',), env, ctx,);
+    const body = await bodyOf(res,) as { text: string; };
+    expect(body.text,).toContain('Usage',);
+  });
+
   it('returns a formatted list of clubs', async () => {
     mockFetch({ clubs: [{ id: '10', name: 'Denek Bat', },], },);
-    const res = await handleSlashCommand(payload('/clubs',), env, ctx,);
+    const res = await handleSlashCommand(payload('/clubs', 'alice', 'lcapb',), env, ctx,);
     const body = await bodyOf(res,) as { text: string; };
     expect(body.text,).toContain('Denek Bat',);
   });
 });
 
 describe('/competitions', () => {
+  it('shows usage when no league is provided', async () => {
+    const res = await handleSlashCommand(payload('/competitions',), env, ctx,);
+    const body = await bodyOf(res,) as { text: string; };
+    expect(body.text,).toContain('Usage',);
+  });
+
   it('returns a formatted list of competitions', async () => {
     mockFetch({
       competitions: [{ id: '5', name: 'Championnat LCAPB 2025-2026', source_id: null, },],
     },);
-    const res = await handleSlashCommand(payload('/competitions',), env, ctx,);
+    const res = await handleSlashCommand(payload('/competitions', 'alice', 'lcapb',), env, ctx,);
     const body = await bodyOf(res,) as { text: string; };
     expect(body.text,).toContain('Championnat LCAPB 2025-2026',);
   });
 });
 
 describe('/results', () => {
-  it('shows usage when no competitionId is provided', async () => {
+  it('shows usage when no league or competitionId is provided', async () => {
     const res = await handleSlashCommand(payload('/results', 'alice', '',), env, ctx,);
+    const body = await bodyOf(res,) as { text: string; };
+    expect(body.text,).toContain('Usage',);
+  });
+
+  it('shows usage when competitionId is missing', async () => {
+    const res = await handleSlashCommand(payload('/results', 'alice', 'lcapb',), env, ctx,);
     const body = await bodyOf(res,) as { text: string; };
     expect(body.text,).toContain('Usage',);
   });
@@ -166,7 +190,7 @@ describe('/results', () => {
         },
       ],
     },);
-    const res = await handleSlashCommand(payload('/results', 'alice', '5',), env, ctx,);
+    const res = await handleSlashCommand(payload('/results', 'alice', 'lcapb 5',), env, ctx,);
     const body = await bodyOf(res,) as { text: string; };
     expect(body.text,).toContain('Denek Bat',);
     expect(body.text,).toContain('Noizbait',);
@@ -176,7 +200,7 @@ describe('/results', () => {
 
   it('handles empty results gracefully', async () => {
     mockFetch({ results: [], },);
-    const res = await handleSlashCommand(payload('/results', 'alice', '999',), env, ctx,);
+    const res = await handleSlashCommand(payload('/results', 'alice', 'lcapb 999',), env, ctx,);
     const body = await bodyOf(res,) as { text: string; };
     expect(body.text,).toContain('No results found',);
   });
