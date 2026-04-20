@@ -18,6 +18,11 @@ export interface Club {
   name: string;
 }
 
+export interface Category {
+  id: string;
+  name: string;
+}
+
 export interface Competition {
   id: string;
   name: string;
@@ -32,6 +37,7 @@ export interface Result {
   clubA: { id: string; name: string; };
   clubB: { id: string; name: string; };
   specialty: { id: string; name: string; };
+  category: { id: string; name: string; } | null;
 }
 
 // --- GraphQL queries ---
@@ -48,6 +54,12 @@ const LIST_CLUBS = `
   }
 `;
 
+const LIST_CATEGORIES = `
+  query ListCategories {
+    categories { id name }
+  }
+`;
+
 const LIST_COMPETITIONS = `
   query ListCompetitions {
     competitions { id name source_id }
@@ -55,8 +67,8 @@ const LIST_COMPETITIONS = `
 `;
 
 const LIST_RESULTS = `
-  query ListResults($competitionId: ID, $specialtyId: ID, $phase: String) {
-    results(competitionId: $competitionId, specialtyId: $specialtyId, phase: $phase) {
+  query ListResults($competitionId: ID, $specialtyId: ID, $categoryId: ID, $phase: String) {
+    results(competitionId: $competitionId, specialtyId: $specialtyId, categoryId: $categoryId, phase: $phase) {
       id
       dateMatch
       phase
@@ -64,6 +76,7 @@ const LIST_RESULTS = `
       clubA { id name }
       clubB { id name }
       specialty { id name }
+      category { id name }
     }
   }
 `;
@@ -72,12 +85,16 @@ const LIST_RESULTS = `
 
 async function gql<T,>(
   url: string,
+  league: string,
   query: string,
   variables?: Record<string, unknown>,
 ): Promise<T> {
   const res = await fetch(url, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json', },
+    headers: {
+      'Content-Type': 'application/json',
+      'X-Pilotariak-League': league,
+    },
     body: JSON.stringify({ query, variables, },),
   },);
   if (!res.ok) {
@@ -93,25 +110,34 @@ async function gql<T,>(
   return json.data;
 }
 
-export async function listSpecialties(gatewayUrl: string,): Promise<Specialty[]> {
-  const data = await gql<{ specialties: Specialty[]; }>(gatewayUrl, LIST_SPECIALTIES,);
+export async function listSpecialties(gatewayUrl: string, league: string,): Promise<Specialty[]> {
+  const data = await gql<{ specialties: Specialty[]; }>(gatewayUrl, league, LIST_SPECIALTIES,);
   return data.specialties;
 }
 
-export async function listClubs(gatewayUrl: string,): Promise<Club[]> {
-  const data = await gql<{ clubs: Club[]; }>(gatewayUrl, LIST_CLUBS,);
+export async function listClubs(gatewayUrl: string, league: string,): Promise<Club[]> {
+  const data = await gql<{ clubs: Club[]; }>(gatewayUrl, league, LIST_CLUBS,);
   return data.clubs;
 }
 
-export async function listCompetitions(gatewayUrl: string,): Promise<Competition[]> {
-  const data = await gql<{ competitions: Competition[]; }>(gatewayUrl, LIST_COMPETITIONS,);
+export async function listCategories(gatewayUrl: string, league: string,): Promise<Category[]> {
+  const data = await gql<{ categories: Category[]; }>(gatewayUrl, league, LIST_CATEGORIES,);
+  return data.categories;
+}
+
+export async function listCompetitions(
+  gatewayUrl: string,
+  league: string,
+): Promise<Competition[]> {
+  const data = await gql<{ competitions: Competition[]; }>(gatewayUrl, league, LIST_COMPETITIONS,);
   return data.competitions;
 }
 
 export async function listResults(
   gatewayUrl: string,
-  filters: { competitionId?: string; specialtyId?: string; phase?: string; },
+  league: string,
+  filters: { competitionId?: string; specialtyId?: string; categoryId?: string; phase?: string; },
 ): Promise<Result[]> {
-  const data = await gql<{ results: Result[]; }>(gatewayUrl, LIST_RESULTS, filters,);
+  const data = await gql<{ results: Result[]; }>(gatewayUrl, league, LIST_RESULTS, filters,);
   return data.results;
 }

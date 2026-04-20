@@ -9,14 +9,14 @@
       "name": "xilo-staging",
       "vars": {
         "ENVIRONMENT": "staging",
-        "FRONTIS_URL": "https://frontis-staging.pilotariak.workers.dev/graphql"
+        "FRONTIS_URL": "https://frontis-gateway.pilotariak.com/graphql"
       }
     },
     "production": {
       "name": "xilo",
       "vars": {
         "ENVIRONMENT": "production",
-        "FRONTIS_URL": "https://frontis.pilotariak.workers.dev/graphql"
+        "FRONTIS_URL": "https://frontis-gateway.pilotariak.com/graphql"
       }
     }
   },

@@ -95,12 +95,54 @@ describe('/ping', () => {
   });
 });
 
+describe('/categories', () => {
+  it('shows usage when no league is provided', async () => {
+    const res = await handleSlashCommand(payload('/categories',), env, ctx,);
+    const body = await bodyOf(res,) as { text: string; };
+    expect(body.text,).toContain('Usage',);
+  });
+
+  it('returns a formatted list of categories', async () => {
+    mockFetch({
+      categories: [{ id: '1', name: '1ère Série', }, { id: '2', name: 'Seniors', },],
+    },);
+    const res = await handleSlashCommand(payload('/categories', 'alice', 'lcapb',), env, ctx,);
+    const body = await bodyOf(res,) as { response_type: string; text: string; };
+    expect(body.response_type,).toBe('ephemeral',);
+    expect(body.text,).toContain('1ère Série',);
+    expect(body.text,).toContain('Seniors',);
+  });
+
+  it('handles empty list gracefully', async () => {
+    mockFetch({ categories: [], },);
+    const res = await handleSlashCommand(payload('/categories', 'alice', 'lcapb',), env, ctx,);
+    const body = await bodyOf(res,) as { text: string; };
+    expect(body.text,).toContain('No categories found',);
+  });
+
+  it('returns an error message when the gateway fails', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue({ ok: false, status: 500, statusText: 'Error', },),
+    );
+    const res = await handleSlashCommand(payload('/categories', 'alice', 'lcapb',), env, ctx,);
+    const body = await bodyOf(res,) as { text: string; };
+    expect(body.text,).toContain('Failed to fetch categories',);
+  });
+});
+
 describe('/specialties', () => {
+  it('shows usage when no league is provided', async () => {
+    const res = await handleSlashCommand(payload('/specialties',), env, ctx,);
+    const body = await bodyOf(res,) as { text: string; };
+    expect(body.text,).toContain('Usage',);
+  });
+
   it('returns a formatted list of specialties', async () => {
     mockFetch({
       specialties: [{ id: '1', name: 'Place Libre', }, { id: '2', name: 'Trinquet', },],
     },);
-    const res = await handleSlashCommand(payload('/specialties',), env, ctx,);
+    const res = await handleSlashCommand(payload('/specialties', 'alice', 'lcapb',), env, ctx,);
     const body = await bodyOf(res,) as { response_type: string; text: string; };
     expect(body.response_type,).toBe('ephemeral',);
     expect(body.text,).toContain('Place Libre',);
@@ -109,7 +151,7 @@ describe('/specialties', () => {
 
   it('handles empty list gracefully', async () => {
     mockFetch({ specialties: [], },);
-    const res = await handleSlashCommand(payload('/specialties',), env, ctx,);
+    const res = await handleSlashCommand(payload('/specialties', 'alice', 'lcapb',), env, ctx,);
     const body = await bodyOf(res,) as { text: string; };
     expect(body.text,).toContain('No specialties found',);
   });
@@ -119,40 +161,52 @@ describe('/specialties', () => {
       'fetch',
       vi.fn().mockResolvedValue({ ok: false, status: 500, statusText: 'Error', },),
     );
-    const res = await handleSlashCommand(payload('/specialties',), env, ctx,);
+    const res = await handleSlashCommand(payload('/specialties', 'alice', 'lcapb',), env, ctx,);
     const body = await bodyOf(res,) as { text: string; };
     expect(body.text,).toContain('Failed to fetch specialties',);
   });
 });
 
 describe('/clubs', () => {
+  it('shows usage when no league is provided', async () => {
+    const res = await handleSlashCommand(payload('/clubs',), env, ctx,);
+    const body = await bodyOf(res,) as { text: string; };
+    expect(body.text,).toContain('Usage',);
+  });
+
   it('returns a formatted list of clubs', async () => {
     mockFetch({ clubs: [{ id: '10', name: 'Denek Bat', },], },);
-    const res = await handleSlashCommand(payload('/clubs',), env, ctx,);
+    const res = await handleSlashCommand(payload('/clubs', 'alice', 'lcapb',), env, ctx,);
     const body = await bodyOf(res,) as { text: string; };
     expect(body.text,).toContain('Denek Bat',);
   });
 });
 
 describe('/competitions', () => {
+  it('shows usage when no league is provided', async () => {
+    const res = await handleSlashCommand(payload('/competitions',), env, ctx,);
+    const body = await bodyOf(res,) as { text: string; };
+    expect(body.text,).toContain('Usage',);
+  });
+
   it('returns a formatted list of competitions', async () => {
     mockFetch({
       competitions: [{ id: '5', name: 'Championnat LCAPB 2025-2026', source_id: null, },],
     },);
-    const res = await handleSlashCommand(payload('/competitions',), env, ctx,);
+    const res = await handleSlashCommand(payload('/competitions', 'alice', 'lcapb',), env, ctx,);
     const body = await bodyOf(res,) as { text: string; };
     expect(body.text,).toContain('Championnat LCAPB 2025-2026',);
   });
 });
 
 describe('/results', () => {
-  it('shows usage when no competitionId is provided', async () => {
+  it('shows usage when no league is provided', async () => {
     const res = await handleSlashCommand(payload('/results', 'alice', '',), env, ctx,);
     const body = await bodyOf(res,) as { text: string; };
     expect(body.text,).toContain('Usage',);
   });
 
-  it('returns formatted results for a competition', async () => {
+  it('returns results filtered by competitionId', async () => {
     mockFetch({
       results: [
         {
@@ -163,10 +217,15 @@ describe('/results', () => {
           clubA: { id: '1', name: 'Denek Bat', },
           clubB: { id: '2', name: 'Noizbait', },
           specialty: { id: '3', name: 'Place Libre', },
+          category: null,
         },
       ],
     },);
-    const res = await handleSlashCommand(payload('/results', 'alice', '5',), env, ctx,);
+    const res = await handleSlashCommand(
+      payload('/results', 'alice', 'lcapb competitionId=5',),
+      env,
+      ctx,
+    );
     const body = await bodyOf(res,) as { text: string; };
     expect(body.text,).toContain('Denek Bat',);
     expect(body.text,).toContain('Noizbait',);
@@ -174,9 +233,67 @@ describe('/results', () => {
     expect(body.text,).toContain('15/10',);
   });
 
+  it('returns results filtered by multiple named params', async () => {
+    mockFetch({
+      results: [
+        {
+          id: '100',
+          dateMatch: '2025-11-01',
+          phase: '0',
+          scores: '12/15',
+          clubA: { id: '1', name: 'Denek Bat', },
+          clubB: { id: '2', name: 'Noizbait', },
+          specialty: { id: '3', name: 'Place Libre', },
+          category: { id: '1', name: '1ère Série', },
+        },
+      ],
+    },);
+    const res = await handleSlashCommand(
+      payload('/results', 'alice', 'lcapb competitionId=5 categoryId=1',),
+      env,
+      ctx,
+    );
+    const body = await bodyOf(res,) as { text: string; };
+    expect(body.text,).toContain('Denek Bat',);
+    expect(body.text,).toContain('1ère Série',);
+  });
+
+  it('returns results filtered by phase', async () => {
+    mockFetch({
+      results: [
+        {
+          id: '101',
+          dateMatch: '2025-12-01',
+          phase: 'Finale',
+          scores: '15/12',
+          clubA: { id: '1', name: 'Denek Bat', },
+          clubB: { id: '2', name: 'Noizbait', },
+          specialty: { id: '25', name: 'Place Libre', },
+          category: { id: '246', name: '1ère Série', },
+        },
+      ],
+    },);
+    const res = await handleSlashCommand(
+      payload(
+        '/results',
+        'alice',
+        'lcapb competitionId=72 specialtyId=25 categoryId=246 phase=Finale',
+      ),
+      env,
+      ctx,
+    );
+    const body = await bodyOf(res,) as { text: string; };
+    expect(body.text,).toContain('Finale',);
+    expect(body.text,).toContain('Denek Bat',);
+  });
+
   it('handles empty results gracefully', async () => {
     mockFetch({ results: [], },);
-    const res = await handleSlashCommand(payload('/results', 'alice', '999',), env, ctx,);
+    const res = await handleSlashCommand(
+      payload('/results', 'alice', 'lcapb competitionId=999',),
+      env,
+      ctx,
+    );
     const body = await bodyOf(res,) as { text: string; };
     expect(body.text,).toContain('No results found',);
   });
