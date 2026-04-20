@@ -15,7 +15,7 @@ import type {
   ToolDefinition,
 } from '../types.js';
 
-const DEFAULT_MODEL = '@cf/google/gemma-2-9b-it';
+const DEFAULT_MODEL = '@cf/meta/llama-3.1-8b-instruct';
 
 // --- Wire types (Workers AI) ---
 
