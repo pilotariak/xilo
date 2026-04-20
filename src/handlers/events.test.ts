@@ -13,6 +13,7 @@ import { handleEvent, } from './events.js';
 const env: Env = {
   SLACK_SIGNING_SECRET: 'secret',
   SLACK_BOT_TOKEN: 'xoxb-test',
+  FRONTIS_URL: 'http://localhost:4000/graphql',
 };
 
 const ctx = {
