@@ -9,6 +9,7 @@
 import { createProvider, } from '../agent/providers/index.js';
 import { runAgent, } from '../agent/runner.js';
 import { createLogger, } from '../logger.js';
+import type { Logger, } from '../logger.js';
 import { postMessage, } from '../slack/api.js';
 import type { Env, SlackEvent, SlackEventPayload, } from '../types.js';
 
@@ -33,6 +34,8 @@ export async function handleEvent(
   env: Env,
   ctx: ExecutionContext,
 ): Promise<Response> {
+  const log = createLogger(env, { handler: 'events', },);
+
   // 1. URL verification — must respond before any retry check
   if (payload.type === 'url_verification') {
     return new Response(JSON.stringify({ challenge: payload.challenge, },), {
@@ -44,9 +47,13 @@ export async function handleEvent(
   //    Returning 200 immediately stops further retry attempts for this event.
   const retryNum = request.headers.get('x-slack-retry-num',);
   if (retryNum !== null) {
-    console.log(
-      `Dropping retry #${retryNum} for event ${payload.event_id ?? 'unknown'} `
-        + `(reason: ${request.headers.get('x-slack-retry-reason',) ?? 'unknown'})`,
+    log.info(
+      {
+        retryNum: Number(retryNum,),
+        eventId: payload.event_id ?? 'unknown',
+        retryReason: request.headers.get('x-slack-retry-reason',) ?? 'unknown',
+      },
+      'dropping slack retry',
     );
     return new Response('OK', { status: 200, },);
   }
@@ -54,35 +61,38 @@ export async function handleEvent(
   // 3. Rate-limited notification — Slack sends this instead of real events
   //    when delivery exceeds 30,000 events/workspace/app per 60-minute window.
   if (payload.type === 'app_rate_limited') {
-    console.warn(
-      `app_rate_limited: team=${payload.team_id} `
-        + `app=${payload.api_app_id} `
-        + `minute=${payload.minute_rate_limited}`,
+    log.warn(
+      {
+        teamId: payload.team_id,
+        appId: payload.api_app_id,
+        minute: payload.minute_rate_limited,
+      },
+      'app_rate_limited',
     );
     return new Response('OK', { status: 200, },);
   }
 
   // 4. Normal event — ack immediately, process in background
   if (payload.type === 'event_callback' && payload.event) {
-    ctx.waitUntil(processEvent(payload, env,),);
+    ctx.waitUntil(processEvent(payload, env, log,),);
   }
 
   return new Response('OK', { status: 200, },);
 }
 
-async function processEvent(payload: SlackEventPayload, env: Env,): Promise<void> {
-  const log = createLogger(env, { eventId: payload.event_id, },);
+async function processEvent(payload: SlackEventPayload, env: Env, log: Logger,): Promise<void> {
+  const eventLog = log.child({ eventId: payload.event_id, },);
   const event = payload.event!;
 
   switch (event.type) {
     case 'app_mention':
-      await handleMention(event, env, log,);
+      await handleMention(event, env, eventLog,);
       break;
 
     case 'message':
       // Only handle DMs; ignore bot messages to prevent infinite loops.
       if (!event.bot_id && event.channel_type === 'im') {
-        await handleDirectMessage(event, env, log,);
+        await handleDirectMessage(event, env, eventLog,);
       }
       break;
 
