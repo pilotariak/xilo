@@ -11,23 +11,39 @@ export interface Env {
   SLACK_BOT_TOKEN: string;
   FRONTIS_URL: string;
   ENVIRONMENT?: string;
-  /** Which AI provider to use for /ask: 'gemini' | 'mistral' | 'claude' (default: 'gemini') */
+  /** Which AI provider to use for /ask (default: 'workers-ai') */
   AGENT_PROVIDER?: string;
-  /** Anthropic API key — required when AGENT_PROVIDER=claude */
-  ANTHROPIC_API_KEY?: string;
-  /** Google AI API key — required when AGENT_PROVIDER=gemini */
-  GEMINI_API_KEY?: string;
-  /** Override the Gemini/Gemma model name (e.g. 'gemma-4-26b-a4b-it' for free Gemma 4) */
-  GEMINI_MODEL?: string;
+  /** Cloudflare Workers AI model name (e.g. '@cf/meta/llama-3.1-8b-instruct') */
+  WORKERS_AI_MODEL?: string;
   /** Fallback league when the user doesn't specify one in their @mention or DM (e.g. 'lcapb') */
   DEFAULT_LEAGUE?: string;
   /** Pino log level: 'trace' | 'debug' | 'info' | 'warn' | 'error' (default: 'info') */
   LOG_LEVEL?: string;
-  /** Mistral AI API key — required when AGENT_PROVIDER=mistral */
-  MISTRAL_API_KEY?: string;
+  /** Cloudflare Queue binding for async agent jobs. */
+  AGENT_QUEUE: Queue<AgentJob>;
+  /** Cloudflare Workers AI binding. */
+  AI: any;
 }
 
-// Slack slash command payload
+/** Message sent to AGENT_QUEUE for async agent execution. */
+export interface AgentJob {
+  /** Slack channel ID — used for postMessage replies. */
+  channel: string;
+  /** Present when the reply should go into an existing thread. */
+  threadTs?: string;
+  /** League code (e.g. 'lcapb'). */
+  league: string;
+  /** The user's question (without league prefix). */
+  question: string;
+  /** Whether to post GraphQL debug blocks alongside the answer. */
+  debugMode: boolean;
+  /**
+   * When set (slash command path), the answer is delivered via Slack
+   * response_url (sendDelayedResponse) instead of chat.postMessage.
+   */
+  responseUrl?: string;
+}
+
 export interface SlashCommandPayload {
   token: string;
   team_id: string;

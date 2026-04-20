@@ -9,39 +9,25 @@
 import type { Logger, } from '../../logger.js';
 import type { Env, } from '../../types.js';
 import type { AgentProvider, } from '../types.js';
-import { createClaudeProvider, } from './claude.js';
-import { createGeminiProvider, } from './gemini.js';
-import { createMistralProvider, } from './mistral.js';
+import { createWorkersAIProvider, } from './workers-ai.js';
 
 /**
  * Instantiates the agent provider configured by AGENT_PROVIDER.
- * The logger is passed to the provider factory so API calls are traced.
- * Throws if the required API key is missing.
+ * Defaults to 'workers-ai' using Cloudflare Workers AI.
  */
 export function createProvider(env: Env, log: Logger,): AgentProvider {
-  const provider = (env.AGENT_PROVIDER ?? 'gemini').toLowerCase();
+  const provider = (env.AGENT_PROVIDER ?? 'workers-ai').toLowerCase();
   switch (provider) {
-    case 'claude': {
-      if (!env.ANTHROPIC_API_KEY) {
-        throw new Error('ANTHROPIC_API_KEY is not set',);
+    case 'workers-ai':
+      if (!env.AI) {
+        throw new Error(
+          'AI binding is not configured. Check your wrangler.jsonc and ensure the "ai" binding is present.',
+        );
       }
-      return createClaudeProvider(env.ANTHROPIC_API_KEY, log,);
-    }
-    case 'gemini': {
-      if (!env.GEMINI_API_KEY) {
-        throw new Error('GEMINI_API_KEY is not set',);
-      }
-      return createGeminiProvider(env.GEMINI_API_KEY, env.GEMINI_MODEL, log,);
-    }
-    case 'mistral': {
-      if (!env.MISTRAL_API_KEY) {
-        throw new Error('MISTRAL_API_KEY is not set',);
-      }
-      return createMistralProvider(env.MISTRAL_API_KEY, log,);
-    }
+      return createWorkersAIProvider(env.AI, env.WORKERS_AI_MODEL, log,);
     default:
       throw new Error(
-        `Unknown AGENT_PROVIDER: "${provider}". Valid values: claude, gemini, mistral`,
+        `Unknown AGENT_PROVIDER: "${provider}". Valid values: workers-ai`,
       );
   }
 }
