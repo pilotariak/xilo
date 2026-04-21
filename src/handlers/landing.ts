@@ -404,6 +404,93 @@ function renderHtml(): string {
       margin-bottom: 2px;
     }
 
+    /* ── Examples: chat bubbles ─────────────────────────────────── */
+    .examples-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 24px;
+    }
+    @media (max-width: 767px) { .examples-grid { grid-template-columns: 1fr; } }
+
+    .chat-card {
+      background: var(--panel);
+      border-radius: 16px;
+      padding: 24px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .chat-label {
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      color: var(--subtle);
+      margin-bottom: 4px;
+    }
+
+    .chat-msg {
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+    }
+
+    .chat-avatar {
+      flex-shrink: 0;
+      width: 32px;
+      height: 32px;
+      border-radius: 6px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 15px;
+      font-weight: 700;
+      line-height: 1;
+    }
+    .chat-avatar-user { background: #4A154B; color: #FFFFFF; font-size: 13px; }
+    .chat-avatar-bot  { background: var(--red); color: #FFFFFF; font-size: 12px; }
+
+    .chat-bubble {
+      flex: 1;
+      min-width: 0;
+    }
+
+    .chat-name {
+      font-size: 13px;
+      font-weight: 700;
+      color: #FFFFFF;
+      margin-bottom: 3px;
+    }
+    .chat-name-bot { color: var(--red); }
+
+    .chat-text {
+      font-size: 14px;
+      line-height: 1.55;
+      color: rgba(255, 255, 255, 0.80);
+      word-break: break-word;
+    }
+    .chat-text code {
+      font-family: ui-monospace, 'SF Mono', Menlo, Consolas, monospace;
+      font-size: 12px;
+      background: rgba(255, 255, 255, 0.10);
+      border-radius: 4px;
+      padding: 1px 5px;
+    }
+    .chat-text strong { color: #FFFFFF; font-weight: 600; }
+
+    .chat-divider {
+      height: 1px;
+      background: rgba(255, 255, 255, 0.07);
+      margin: 4px 0;
+    }
+
+    .chat-more {
+      font-size: 12px;
+      color: var(--subtle);
+      font-style: italic;
+    }
+
     /* ── Setup steps ────────────────────────────────────────────── */
     .steps-grid {
       display: grid;
@@ -578,6 +665,7 @@ function renderHtml(): string {
       </a>
       <ul class="nav-links" role="list">
         <li><a href="#commands">Commands</a></li>
+        <li><a href="#examples">Examples</a></li>
         <li><a href="#setup">Setup</a></li>
         <li><a href="https://github.com/Pilotariak/xilo">GitHub</a></li>
       </ul>
@@ -678,6 +766,130 @@ function renderHtml(): string {
               Posts a greeting with your name to the channel so everyone can see.
             </div>
           </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Examples -->
+    <section class="section" id="examples" aria-labelledby="examples-title">
+      <div class="container">
+        <header class="section-header">
+          <span class="eyebrow">In Action</span>
+          <h2 class="section-title" id="examples-title">Ask anything, naturally</h2>
+          <p class="section-subtitle">
+            Mention @Xilo in any channel or send it a direct message — in English or French.
+          </p>
+        </header>
+        <div class="examples-grid">
+
+          <!-- Example 1: competitions -->
+          <div class="chat-card" aria-label="Example: list competitions">
+            <p class="chat-label">List competitions</p>
+            <div class="chat-msg">
+              <div class="chat-avatar chat-avatar-user" aria-hidden="true">U</div>
+              <div class="chat-bubble">
+                <p class="chat-name">User</p>
+                <p class="chat-text"><strong>@Xilo</strong> what are the competitions for lcapb</p>
+              </div>
+            </div>
+            <div class="chat-divider"></div>
+            <div class="chat-msg">
+              <div class="chat-avatar chat-avatar-bot" aria-hidden="true">X</div>
+              <div class="chat-bubble">
+                <p class="chat-name chat-name-bot">Xilo</p>
+                <p class="chat-text">
+                  <strong>Competitions</strong><br>
+                  • Championnat Jeunes CCAPB 2025-2026<br>
+                  • Championnat CCAPB 2025-2026<br>
+                  • Championnat Corpo CCAPB 2025-2026<br>
+                  <span class="chat-more">… and more</span>
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <!-- Example 2: categories -->
+          <div class="chat-card" aria-label="Example: list categories">
+            <p class="chat-label">List categories</p>
+            <div class="chat-msg">
+              <div class="chat-avatar chat-avatar-user" aria-hidden="true">U</div>
+              <div class="chat-bubble">
+                <p class="chat-name">User</p>
+                <p class="chat-text"><strong>@Xilo</strong> what are the categories for lcapb</p>
+              </div>
+            </div>
+            <div class="chat-divider"></div>
+            <div class="chat-msg">
+              <div class="chat-avatar chat-avatar-bot" aria-hidden="true">X</div>
+              <div class="chat-bubble">
+                <p class="chat-name chat-name-bot">Xilo</p>
+                <p class="chat-text">
+                  <strong>Catégories</strong><br>
+                  • 1ère Série<br>
+                  • 2ème Série<br>
+                  • 3ème Série<br>
+                  <span class="chat-more">… and more</span>
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <!-- Example 3: specialties -->
+          <div class="chat-card" aria-label="Example: list specialties">
+            <p class="chat-label">List specialties</p>
+            <div class="chat-msg">
+              <div class="chat-avatar chat-avatar-user" aria-hidden="true">U</div>
+              <div class="chat-bubble">
+                <p class="chat-name">User</p>
+                <p class="chat-text"><strong>@Xilo</strong> what are the specialities for lcapb</p>
+              </div>
+            </div>
+            <div class="chat-divider"></div>
+            <div class="chat-msg">
+              <div class="chat-avatar chat-avatar-bot" aria-hidden="true">X</div>
+              <div class="chat-bubble">
+                <p class="chat-name chat-name-bot">Xilo</p>
+                <p class="chat-text">
+                  <strong>Spécialités</strong><br>
+                  • Mur à Gauche / P.G. Pleine Masculin<br>
+                  • Place Libre / P.G. Pleine Feminine<br>
+                  • Trinquet / P.G. Pleine Masculin<br>
+                  <span class="chat-more">… and more</span>
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <!-- Example 4: results -->
+          <div class="chat-card" aria-label="Example: query results">
+            <p class="chat-label">Query results</p>
+            <div class="chat-msg">
+              <div class="chat-avatar chat-avatar-user" aria-hidden="true">U</div>
+              <div class="chat-bubble">
+                <p class="chat-name">User</p>
+                <p class="chat-text">
+                  <strong>@Xilo</strong> results for competition
+                  <code>Championnat CCAPB 2025-2026</code>
+                  in speciality <code>Trinquet / P.G. Pleine Masculin</code>
+                  in category <code>1ère Série</code> for lcapb
+                </p>
+              </div>
+            </div>
+            <div class="chat-divider"></div>
+            <div class="chat-msg">
+              <div class="chat-avatar chat-avatar-bot" aria-hidden="true">X</div>
+              <div class="chat-bubble">
+                <p class="chat-name chat-name-bot">Xilo</p>
+                <p class="chat-text">
+                  <strong>Résultats — Trinquet / P.G. Pleine Masculin | 1ère Série | Championnat CCAPB 2025-2026</strong><br>
+                  • 02/11/2025 [P 18] — BORDEAUX ETUDIANTS CLUB vs PILOTARI CLUB VILLENAVAIS 25/40<br>
+                  • 05/10/2025 [P 4] — CA BEGLAIS vs CA BEGLAIS 40/13<br>
+                  <span class="chat-more">… and more</span>
+                </p>
+              </div>
+            </div>
+          </div>
+
         </div>
       </div>
     </section>

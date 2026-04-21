@@ -7,6 +7,8 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import pkg from '../../package.json';
+import { createProvider, } from '../agent/providers/index.js';
+import { runAgent, } from '../agent/runner.js';
 import {
   listCategories,
   listClubs,
@@ -14,6 +16,9 @@ import {
   listResults,
   listSpecialties,
 } from '../frontis/client.js';
+import { createLogger, } from '../logger.js';
+import type { Logger, } from '../logger.js';
+import { postMessage, sendDelayedResponse, } from '../slack/api.js';
 import { channelText, ephemeralText, } from '../slack/response.js';
 import type { Env, SlashCommandPayload, } from '../types.js';
 
@@ -23,8 +28,17 @@ import type { Env, SlashCommandPayload, } from '../types.js';
 export async function handleSlashCommand(
   payload: SlashCommandPayload,
   env: Env,
-  _ctx: ExecutionContext,
+  ctx: ExecutionContext,
 ): Promise<Response> {
+  const log = createLogger(env, {
+    handler: 'commands',
+    command: payload.command,
+    user: payload.user_name,
+    channel: payload.channel_name,
+  },);
+
+  log.info('slash command received',);
+
   switch (payload.command) {
     case '/help':
       return ephemeralText(buildHelpText(),);
@@ -36,21 +50,25 @@ export async function handleSlashCommand(
       return channelText(`Hello @${payload.user_name}!`,);
 
     case '/categories':
-      return handleCategories(env.FRONTIS_URL, payload.text.trim(),);
+      return handleCategories(env.FRONTIS_URL, payload.text.trim(), log,);
 
     case '/specialties':
-      return handleSpecialties(env.FRONTIS_URL, payload.text.trim(),);
+      return handleSpecialties(env.FRONTIS_URL, payload.text.trim(), log,);
 
     case '/clubs':
-      return handleClubs(env.FRONTIS_URL, payload.text.trim(),);
+      return handleClubs(env.FRONTIS_URL, payload.text.trim(), log,);
 
     case '/competitions':
-      return handleCompetitions(env.FRONTIS_URL, payload.text.trim(),);
+      return handleCompetitions(env.FRONTIS_URL, payload.text.trim(), log,);
 
     case '/results':
-      return handleResults(env.FRONTIS_URL, payload.text.trim(),);
+      return handleResults(env.FRONTIS_URL, payload.text.trim(), log,);
+
+    case '/ask':
+      return handleAsk(payload, env, ctx, log,);
 
     default:
+      log.warn({ command: payload.command, }, 'unknown command',);
       return ephemeralText(
         `Unknown command: \`${payload.command}\`. Try \`/help\` for a list of commands.`,
       );
@@ -68,73 +86,90 @@ function buildHelpText(): string {
     '`/clubs <league>` — List all clubs for a league',
     '`/competitions <league>` — List all competitions for a league',
     '`/results <league> [competitionId=x] [specialtyId=x] [categoryId=x] [phase=x]` — List match results',
+    '`/ask <league> <question>` — Ask a natural-language question (AI agent)',
   ].join('\n',);
 }
 
-async function handleCategories(gatewayUrl: string, text: string,): Promise<Response> {
+async function handleCategories(gatewayUrl: string, text: string, log: Logger,): Promise<Response> {
   const [league,] = text.split(/\s+/,);
   if (!league) {
     return ephemeralText('Usage: `/categories <league>`\nExample: `/categories lcapb`',);
   }
   try {
     const categories = await listCategories(gatewayUrl, league,);
+    log.debug({ league, count: categories.length, }, 'categories fetched',);
     if (categories.length === 0) {
       return ephemeralText('No categories found.',);
     }
     const lines = categories.map((c,) => `• *${c.name}* (id: \`${c.id}\`)`);
     return ephemeralText(['*Categories*', ...lines,].join('\n',),);
   } catch (err) {
+    log.error({ err: String(err,), league, }, 'failed to fetch categories',);
     return ephemeralText(`Failed to fetch categories: ${String(err,)}`,);
   }
 }
 
-async function handleSpecialties(gatewayUrl: string, text: string,): Promise<Response> {
+async function handleSpecialties(
+  gatewayUrl: string,
+  text: string,
+  log: Logger,
+): Promise<Response> {
   const [league,] = text.split(/\s+/,);
   if (!league) {
     return ephemeralText('Usage: `/specialties <league>`\nExample: `/specialties lcapb`',);
   }
   try {
     const specialties = await listSpecialties(gatewayUrl, league,);
+    log.debug({ league, count: specialties.length, }, 'specialties fetched',);
     if (specialties.length === 0) {
       return ephemeralText('No specialties found.',);
     }
     const lines = specialties.map((s,) => `• *${s.name}* (id: \`${s.id}\`)`);
     return ephemeralText(['*Pelota Specialties*', ...lines,].join('\n',),);
   } catch (err) {
+    log.error({ err: String(err,), league, }, 'failed to fetch specialties',);
     return ephemeralText(`Failed to fetch specialties: ${String(err,)}`,);
   }
 }
 
-async function handleClubs(gatewayUrl: string, text: string,): Promise<Response> {
+async function handleClubs(gatewayUrl: string, text: string, log: Logger,): Promise<Response> {
   const [league,] = text.split(/\s+/,);
   if (!league) {
     return ephemeralText('Usage: `/clubs <league>`\nExample: `/clubs lcapb`',);
   }
   try {
     const clubs = await listClubs(gatewayUrl, league,);
+    log.debug({ league, count: clubs.length, }, 'clubs fetched',);
     if (clubs.length === 0) {
       return ephemeralText('No clubs found.',);
     }
     const lines = clubs.map((c,) => `• *${c.name}* (id: \`${c.id}\`)`);
     return ephemeralText(['*Pelota Clubs*', ...lines,].join('\n',),);
   } catch (err) {
+    log.error({ err: String(err,), league, }, 'failed to fetch clubs',);
     return ephemeralText(`Failed to fetch clubs: ${String(err,)}`,);
   }
 }
 
-async function handleCompetitions(gatewayUrl: string, text: string,): Promise<Response> {
+async function handleCompetitions(
+  gatewayUrl: string,
+  text: string,
+  log: Logger,
+): Promise<Response> {
   const [league,] = text.split(/\s+/,);
   if (!league) {
     return ephemeralText('Usage: `/competitions <league>`\nExample: `/competitions lcapb`',);
   }
   try {
     const competitions = await listCompetitions(gatewayUrl, league,);
+    log.debug({ league, count: competitions.length, }, 'competitions fetched',);
     if (competitions.length === 0) {
       return ephemeralText('No competitions found.',);
     }
     const lines = competitions.map((c,) => `• *${c.name}* (id: \`${c.id}\`)`);
     return ephemeralText(['*Competitions*', ...lines,].join('\n',),);
   } catch (err) {
+    log.error({ err: String(err,), league, }, 'failed to fetch competitions',);
     return ephemeralText(`Failed to fetch competitions: ${String(err,)}`,);
   }
 }
@@ -165,7 +200,7 @@ function parseResultsArgs(text: string,): {
   return { league: league || undefined, filters, };
 }
 
-async function handleResults(gatewayUrl: string, text: string,): Promise<Response> {
+async function handleResults(gatewayUrl: string, text: string, log: Logger,): Promise<Response> {
   const { league, filters, } = parseResultsArgs(text,);
   if (!league) {
     return ephemeralText(
@@ -177,6 +212,7 @@ async function handleResults(gatewayUrl: string, text: string,): Promise<Respons
   }
   try {
     const results = await listResults(gatewayUrl, league, filters,);
+    log.debug({ league, filters, count: results.length, }, 'results fetched',);
     if (results.length === 0) {
       return ephemeralText('No results found.',);
     }
@@ -189,6 +225,65 @@ async function handleResults(gatewayUrl: string, text: string,): Promise<Respons
     },);
     return ephemeralText(['*Results*', ...lines,].join('\n',),);
   } catch (err) {
+    log.error({ err: String(err,), league, filters, }, 'failed to fetch results',);
     return ephemeralText(`Failed to fetch results: ${String(err,)}`,);
   }
+}
+
+async function handleAsk(
+  payload: SlashCommandPayload,
+  env: Env,
+  ctx: ExecutionContext,
+  log: Logger,
+): Promise<Response> {
+  const text = payload.text.trim();
+  const spaceIdx = text.indexOf(' ',);
+  if (spaceIdx < 0 || !text.slice(spaceIdx + 1,).trim()) {
+    return ephemeralText(
+      [
+        'Usage: `/ask <league> <question>`',
+        'Example: `/ask ccapb What are the results of "Trinquet / P.G. Pleine Masculin" in "1ère Série" for "Championnat CCAPB 2025-2026"?`',
+      ].join('\n',),
+    );
+  }
+
+  const league = text.slice(0, spaceIdx,);
+  const rawQuestion = text.slice(spaceIdx + 1,).trim();
+  const debugMode = /\(DEBUG=true\)/i.test(rawQuestion,);
+  const question = rawQuestion.replace(/\s*\(DEBUG=true\)\s*/gi, ' ',).trim();
+
+  const askLog = log.child({ league, debugMode, },);
+  askLog.info('ask command received',);
+
+  let provider;
+  try {
+    provider = createProvider(env, askLog,);
+  } catch (err) {
+    askLog.error({ err: String(err,), }, 'agent provider configuration error',);
+    return ephemeralText(`Agent configuration error: ${String(err,)}`,);
+  }
+
+  const agentQuestion = `League: ${league}\n\nQuestion: ${question}`;
+  const { response_url: responseUrl, channel_id: channelId, } = payload;
+
+  // Debug messages are posted directly to the channel (postMessage) so they
+  // don't count against the 5-call limit on response_url.
+  const debugCallback = debugMode
+    ? async (msg: string,) => {
+      await postMessage(env.SLACK_BOT_TOKEN, channelId, msg,);
+    }
+    : undefined;
+
+  // Acknowledge immediately (Slack requires a response within 3 seconds),
+  // then run the agent asynchronously and post the answer via response_url.
+  ctx.waitUntil(
+    runAgent(agentQuestion, env.FRONTIS_URL, provider, debugCallback, askLog,)
+      .then((answer,) => sendDelayedResponse(responseUrl, answer, 'ephemeral',))
+      .catch((err,) => {
+        askLog.error({ err: String(err,), }, 'agent error in ask command',);
+        return sendDelayedResponse(responseUrl, `Agent error: ${String(err,)}`, 'ephemeral',);
+      },),
+  );
+
+  return ephemeralText('_Thinking…_ I am querying the Frontis database for you.',);
 }

@@ -10,17 +10,22 @@ const SLACK_API_BASE = 'https://slack.com/api';
 
 /**
  * Posts a message to a Slack channel using the Bot token.
- * Used for asynchronous responses (e.g., after processing a slash command).
+ *
+ * @param threadTs - When set, the message is posted as a reply in that thread.
  */
 export async function postMessage(
   botToken: string,
   channel: string,
   text: string,
   blocks?: object[],
+  threadTs?: string,
 ): Promise<void> {
   const body: Record<string, unknown> = { channel, text, };
   if (blocks) {
     body.blocks = blocks;
+  }
+  if (threadTs) {
+    body.thread_ts = threadTs;
   }
 
   const response = await fetch(`${SLACK_API_BASE}/chat.postMessage`, {

@@ -80,25 +80,20 @@ clean: ## Clean project
 .PHONY: dev
 dev: ## Run local development server
 	@echo -e "$(INFO)$(INFO_COLOR)[Dev] Starting local worker $(NO_COLOR)"
-	npx wrangler dev
-
-.PHONY: deploy-staging
-deploy-staging: ## Deploy to staging environment
-	@echo -e "$(INFO)$(INFO_COLOR)[Deploy] Staging $(NO_COLOR)"
-	npx wrangler deploy --env staging
+	bunx wrangler dev
 
 .PHONY: deploy
 deploy: ## Deploy to production
 	@echo -e "$(INFO)$(INFO_COLOR)[Deploy] Production $(NO_COLOR)"
-	npx wrangler deploy --env production
+	bunx wrangler deploy
 
 .PHONY: logs
 logs: ## Tail live worker logs
 	@echo -e "$(INFO)$(INFO_COLOR)[Logs] Tailing $(NO_COLOR)"
-	npx wrangler tail
+	bunx wrangler tail
 
 .PHONY: secrets
 secrets: ## Show required secrets setup instructions
 	@echo -e "$(INFO)$(INFO_COLOR)[Secrets] Required secrets: $(NO_COLOR)"
-	@echo "  npx wrangler secret put SLACK_SIGNING_SECRET"
-	@echo "  npx wrangler secret put SLACK_BOT_TOKEN"
+	@echo "  bunx wrangler secret put SLACK_SIGNING_SECRET"
+	@echo "  bunx wrangler secret put SLACK_BOT_TOKEN"

@@ -8,13 +8,17 @@
 
 import { afterEach, beforeEach, describe, expect, it, vi, } from 'vitest';
 import pkg from '../../package.json';
-import type { Env, SlashCommandPayload, } from '../types.js';
+import type { AgentJob, Env, SlashCommandPayload, } from '../types.js';
 import { handleSlashCommand, } from './commands.js';
 
 const env: Env = {
   SLACK_SIGNING_SECRET: 'secret',
   SLACK_BOT_TOKEN: 'xoxb-test',
   FRONTIS_URL: 'http://localhost:4000/graphql',
+  AGENT_QUEUE: {
+    send: vi.fn(),
+  } as unknown as Queue<AgentJob>,
+  AI: {} as Ai,
 };
 const ctx = {} as ExecutionContext;
 

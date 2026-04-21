@@ -4,19 +4,52 @@
   "main": "src/index.ts",
   "compatibility_date": "2026-04-18",
   "compatibility_flags": ["nodejs_compat_v2"],
+  "ai": {
+    "binding": "AI"
+  },
+  // Default vars for `wrangler dev` (no --env flag).
+  // Staging/production override these below.
+  "vars": {
+    "ENVIRONMENT": "development",
+    "FRONTIS_URL": "https://frontis-gateway.pilotariak.com/graphql",
+    "AGENT_PROVIDER": "workers-ai",
+    "DEFAULT_LEAGUE": "",
+    "LOG_LEVEL": "debug"
+  },
+  "queues": {
+    "producers": [
+      {
+        "binding": "AGENT_QUEUE",
+        "queue": "xilo-agent-queue"
+      }
+    ],
+    "consumers": [
+      {
+        "queue": "xilo-agent-queue",
+        "max_batch_size": 1,
+        "max_concurrency": 5
+      }
+    ]
+  },
   "env": {
     "staging": {
       "name": "xilo-staging",
       "vars": {
         "ENVIRONMENT": "staging",
-        "FRONTIS_URL": "https://frontis-gateway.pilotariak.com/graphql"
+        "FRONTIS_URL": "https://frontis-gateway.pilotariak.com/graphql",
+        "AGENT_PROVIDER": "workers-ai",
+        "DEFAULT_LEAGUE": "",
+        "LOG_LEVEL": "debug"
       }
     },
     "production": {
       "name": "xilo",
       "vars": {
         "ENVIRONMENT": "production",
-        "FRONTIS_URL": "https://frontis-gateway.pilotariak.com/graphql"
+        "FRONTIS_URL": "https://frontis-gateway.pilotariak.com/graphql",
+        "AGENT_PROVIDER": "workers-ai",
+        "DEFAULT_LEAGUE": "",
+        "LOG_LEVEL": "info"
       }
     }
   },

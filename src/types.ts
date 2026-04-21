@@ -11,9 +11,39 @@ export interface Env {
   SLACK_BOT_TOKEN: string;
   FRONTIS_URL: string;
   ENVIRONMENT?: string;
+  /** Which AI provider to use for /ask (default: 'workers-ai') */
+  AGENT_PROVIDER?: string;
+  /** Cloudflare Workers AI model name (e.g. '@cf/meta/llama-3.1-8b-instruct') */
+  WORKERS_AI_MODEL?: string;
+  /** Fallback league when the user doesn't specify one in their @mention or DM (e.g. 'lcapb') */
+  DEFAULT_LEAGUE?: string;
+  /** Pino log level: 'trace' | 'debug' | 'info' | 'warn' | 'error' (default: 'info') */
+  LOG_LEVEL?: string;
+  /** Cloudflare Queue binding for async agent jobs. */
+  AGENT_QUEUE: Queue<AgentJob>;
+  /** Cloudflare Workers AI binding. */
+  AI: any;
 }
 
-// Slack slash command payload
+/** Message sent to AGENT_QUEUE for async agent execution. */
+export interface AgentJob {
+  /** Slack channel ID — used for postMessage replies. */
+  channel: string;
+  /** Present when the reply should go into an existing thread. */
+  threadTs?: string;
+  /** League code (e.g. 'lcapb'). */
+  league: string;
+  /** The user's question (without league prefix). */
+  question: string;
+  /** Whether to post GraphQL debug blocks alongside the answer. */
+  debugMode: boolean;
+  /**
+   * When set (slash command path), the answer is delivered via Slack
+   * response_url (sendDelayedResponse) instead of chat.postMessage.
+   */
+  responseUrl?: string;
+}
+
 export interface SlashCommandPayload {
   token: string;
   team_id: string;
@@ -72,7 +102,12 @@ export interface SlackEvent {
   user?: string;
   text?: string;
   channel?: string;
+  /** Message timestamp — use as thread_ts to reply in-thread. */
   ts?: string;
+  /** Set when the message is already inside a thread. */
+  thread_ts?: string;
+  /** 'im' for DMs, 'channel' for public channels, 'group' for private channels. */
+  channel_type?: string;
   bot_id?: string;
 }
 

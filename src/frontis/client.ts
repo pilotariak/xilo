@@ -81,6 +81,15 @@ const LIST_RESULTS = `
   }
 `;
 
+/** Maps agent tool names → their GraphQL query strings. Used for debug output. */
+export const GRAPHQL_QUERIES: Readonly<Record<string, string>> = {
+  list_specialties: LIST_SPECIALTIES,
+  list_clubs: LIST_CLUBS,
+  list_categories: LIST_CATEGORIES,
+  list_competitions: LIST_COMPETITIONS,
+  list_results: LIST_RESULTS,
+};
+
 // --- Client ---
 
 async function gql<T,>(

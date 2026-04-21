@@ -7,13 +7,17 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import { describe, expect, it, vi, } from 'vitest';
-import type { Env, SlackEventPayload, } from '../types.js';
+import type { AgentJob, Env, SlackEventPayload, } from '../types.js';
 import { handleEvent, } from './events.js';
 
 const env: Env = {
   SLACK_SIGNING_SECRET: 'secret',
   SLACK_BOT_TOKEN: 'xoxb-test',
   FRONTIS_URL: 'http://localhost:4000/graphql',
+  AGENT_QUEUE: {
+    send: vi.fn(),
+  } as unknown as Queue<AgentJob>,
+  AI: {} as Ai,
 };
 
 const ctx = {

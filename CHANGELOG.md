@@ -2,11 +2,10 @@
 
 ## [0.3.0](https://github.com/pilotariak/xilo/compare/xilo-v0.2.0...xilo-v0.3.0) (2026-04-20)
 
-
 ### 🚀 Features
 
-* **worker:** add /categories command and fix /results filters ([#8](https://github.com/pilotariak/xilo/issues/8)) ([aa97532](https://github.com/pilotariak/xilo/commit/aa97532987f35e69d1961934fbec4d97f12438ad))
-* **worker:** add Frontis GraphQL slash commands ([#6](https://github.com/pilotariak/xilo/issues/6)) ([c481747](https://github.com/pilotariak/xilo/commit/c481747ed83eb03120150d8689d96fb9a9c1a92d))
+- **worker:** add /categories command and fix /results filters ([#8](https://github.com/pilotariak/xilo/issues/8)) ([aa97532](https://github.com/pilotariak/xilo/commit/aa97532987f35e69d1961934fbec4d97f12438ad))
+- **worker:** add Frontis GraphQL slash commands ([#6](https://github.com/pilotariak/xilo/issues/6)) ([c481747](https://github.com/pilotariak/xilo/commit/c481747ed83eb03120150d8689d96fb9a9c1a92d))
 
 ## [0.2.0](https://github.com/pilotariak/xilo/compare/xilo-v0.1.0...xilo-v0.2.0) (2026-04-18)
 

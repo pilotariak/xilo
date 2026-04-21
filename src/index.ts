@@ -10,9 +10,10 @@ import pkg from '../package.json';
 import { handleSlashCommand, } from './handlers/commands.js';
 import { handleEvent, } from './handlers/events.js';
 import { handleLanding, } from './handlers/landing.js';
+import { handleQueue, } from './handlers/queue.js';
 import { errorResponse, } from './slack/response.js';
 import { verifySlackSignature, } from './slack/verify.js';
-import type { Env, SlackEventPayload, SlashCommandPayload, } from './types.js';
+import type { AgentJob, Env, SlackEventPayload, SlashCommandPayload, } from './types.js';
 
 export default {
   async fetch(request: Request, env: Env, ctx: ExecutionContext,): Promise<Response> {
@@ -67,6 +68,10 @@ export default {
       default:
         return new Response('Not Found', { status: 404, },);
     }
+  },
+
+  async queue(batch: MessageBatch<AgentJob>, env: Env,): Promise<void> {
+    return handleQueue(batch, env,);
   },
 };
 
