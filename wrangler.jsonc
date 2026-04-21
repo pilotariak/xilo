@@ -7,6 +7,15 @@
   "ai": {
     "binding": "AI"
   },
+  // Default vars for `wrangler dev` (no --env flag).
+  // Staging/production override these below.
+  "vars": {
+    "ENVIRONMENT": "development",
+    "FRONTIS_URL": "https://frontis-gateway.pilotariak.com/graphql",
+    "AGENT_PROVIDER": "workers-ai",
+    "DEFAULT_LEAGUE": "",
+    "LOG_LEVEL": "debug"
+  },
   "queues": {
     "producers": [
       {

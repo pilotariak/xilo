@@ -149,9 +149,12 @@ function extractDebugFlag(text: string,): { text: string; debug: boolean; } {
 /**
  * Extracts the league and question from a raw Slack message text.
  *
- * Strips any bot mention prefix (<@UXXXXXX>), then checks whether the first
- * word looks like a league code (2–8 lowercase letters). Falls back to
- * DEFAULT_LEAGUE when no code is found.
+ * Detection order (first match wins):
+ *  1. Explicit "league <code>" or "for <code>" pattern anywhere in the text
+ *     (e.g. "@xilo for league lcapb what are the results…")
+ *  2. First word is a league code: 4–8 lowercase letters that is not a common
+ *     English/French stop word (e.g. "@xilo lcapb what are the results…")
+ *  3. Fall back to the DEFAULT_LEAGUE env var when no code is found.
  *
  * Returns null when no league can be determined.
  */
@@ -163,16 +166,93 @@ function parseQuery(
   const text = rawText.replace(/^<@[A-Z0-9]+>\s*/i, '',).trim();
   if (!text) { return null; }
 
+  // 1. Explicit keyword: "league lcapb" or "ligue lcapb"
+  const explicitMatch = text.match(/\b(?:league|ligue)\s+([a-z]{2,8})\b/i,);
+  if (explicitMatch) {
+    return { league: explicitMatch[1].toLowerCase(), question: text, };
+  }
+
+  // 2. Preposition + code: "de lcapb", "du ccapb", "pour lcapb", "of lcapb", "for lcapb"
+  //    Handles French natural-language queries like "liste des compétitions de lcapb".
+  const PREP_ARTICLES = new Set([
+    'la',
+    'le',
+    'les',
+    'un',
+    'une',
+    'des',
+    'du',
+    'au',
+    'aux',
+    'son',
+    'ses',
+    'mon',
+    'mes',
+    'ton',
+    'tes',
+    'nos',
+    'vos',
+    'the',
+    'and',
+    'but',
+    'not',
+  ],);
+  const prepMatch = text.match(/\b(?:de|du|pour|of|for)\s+([a-z]{3,8})\b/i,);
+  if (prepMatch) {
+    const candidate = prepMatch[1].toLowerCase();
+    if (!PREP_ARTICLES.has(candidate,)) {
+      return { league: candidate, question: text, };
+    }
+  }
+
+  // 3. First word is a league code (5–8 lowercase letters).
+  //    Handles "@xilo lcapb what are the results…" style mentions.
+  //    Common French/English sentence starters are blocked to avoid false matches.
+  const SENTENCE_STARTERS = new Set([
+    'donne',
+    'donnez',
+    'liste',
+    'listez',
+    'montre',
+    'montrez',
+    'affiche',
+    'afficher',
+    'cherche',
+    'cherchez',
+    'trouver',
+    'trouvez',
+    'pouvez',
+    'voulez',
+    'merci',
+    'bonjour',
+    'bonsoir',
+    'quels',
+    'quelle',
+    'quelles',
+    'which',
+    'where',
+    'could',
+    'would',
+    'shall',
+    'might',
+    'their',
+    'there',
+    'these',
+    'those',
+    'please',
+    'hello',
+    'shows',
+    'gives',
+    'finds',
+  ],);
   const spaceIdx = text.indexOf(' ',);
   const firstWord = spaceIdx >= 0 ? text.slice(0, spaceIdx,) : text;
   const rest = spaceIdx >= 0 ? text.slice(spaceIdx + 1,).trim() : '';
-
-  // A league code is 2–8 lowercase letters (e.g. lcapb, ccapb).
-  if (/^[a-z]{2,8}$/.test(firstWord,) && rest) {
+  if (/^[a-z]{5,8}$/.test(firstWord,) && rest && !SENTENCE_STARTERS.has(firstWord,)) {
     return { league: firstWord, question: rest, };
   }
 
-  // No league code in the message — fall back to the configured default.
+  // 4. No league code found — fall back to the configured default.
   if (defaultLeague) {
     return { league: defaultLeague, question: text, };
   }

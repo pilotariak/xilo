@@ -116,13 +116,15 @@ export function createWorkersAIProvider(
       },);
 
       // Workers AI .run() returns the data directly if successful.
+      providerLog.debug({ rawToolCalls: response.tool_calls, }, 'raw tool calls from model',);
       const toolCalls: ToolCall[] = (response.tool_calls || [])
+        .filter((tc: any,) => tc?.function?.name)
         .map((tc: any,) => ({
-          id: tc.id,
+          id: tc.id ?? crypto.randomUUID(),
           name: tc.function.name,
           arguments: typeof tc.function.arguments === 'string'
             ? JSON.parse(tc.function.arguments,)
-            : tc.function.arguments,
+            : (tc.function.arguments ?? {}),
         }));
 
       providerLog.debug(
