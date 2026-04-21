@@ -7,8 +7,6 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import pkg from '../../package.json';
-import { createProvider, } from '../agent/providers/index.js';
-import { runAgent, } from '../agent/runner.js';
 import {
   listCategories,
   listClubs,
@@ -18,7 +16,6 @@ import {
 } from '../frontis/client.js';
 import { createLogger, } from '../logger.js';
 import type { Logger, } from '../logger.js';
-import { postMessage, sendDelayedResponse, } from '../slack/api.js';
 import { channelText, ephemeralText, } from '../slack/response.js';
 import type { Env, SlashCommandPayload, } from '../types.js';
 
@@ -28,7 +25,6 @@ import type { Env, SlashCommandPayload, } from '../types.js';
 export async function handleSlashCommand(
   payload: SlashCommandPayload,
   env: Env,
-  ctx: ExecutionContext,
 ): Promise<Response> {
   const log = createLogger(env, {
     handler: 'commands',
@@ -65,7 +61,7 @@ export async function handleSlashCommand(
       return handleResults(env.FRONTIS_URL, payload.text.trim(), log,);
 
     case '/ask':
-      return handleAsk(payload, env, ctx, log,);
+      return handleAsk(payload, env, log,);
 
     default:
       log.warn({ command: payload.command, }, 'unknown command',);
@@ -233,7 +229,6 @@ async function handleResults(gatewayUrl: string, text: string, log: Logger,): Pr
 async function handleAsk(
   payload: SlashCommandPayload,
   env: Env,
-  ctx: ExecutionContext,
   log: Logger,
 ): Promise<Response> {
   const text = payload.text.trim();
@@ -255,35 +250,17 @@ async function handleAsk(
   const askLog = log.child({ league, debugMode, },);
   askLog.info('ask command received',);
 
-  let provider;
-  try {
-    provider = createProvider(env, askLog,);
-  } catch (err) {
-    askLog.error({ err: String(err,), }, 'agent provider configuration error',);
-    return ephemeralText(`Agent configuration error: ${String(err,)}`,);
-  }
-
-  const agentQuestion = `League: ${league}\n\nQuestion: ${question}`;
   const { response_url: responseUrl, channel_id: channelId, } = payload;
 
-  // Debug messages are posted directly to the channel (postMessage) so they
-  // don't count against the 5-call limit on response_url.
-  const debugCallback = debugMode
-    ? async (msg: string,) => {
-      await postMessage(env.SLACK_BOT_TOKEN, channelId, msg,);
-    }
-    : undefined;
-
   // Acknowledge immediately (Slack requires a response within 3 seconds),
-  // then run the agent asynchronously and post the answer via response_url.
-  ctx.waitUntil(
-    runAgent(agentQuestion, env.FRONTIS_URL, provider, debugCallback, askLog,)
-      .then((answer,) => sendDelayedResponse(responseUrl, answer, 'ephemeral',))
-      .catch((err,) => {
-        askLog.error({ err: String(err,), }, 'agent error in ask command',);
-        return sendDelayedResponse(responseUrl, `Agent error: ${String(err,)}`, 'ephemeral',);
-      },),
-  );
+  // then dispatch to AGENT_QUEUE. The queue consumer posts the answer via response_url.
+  await env.AGENT_QUEUE.send({
+    channel: channelId,
+    league,
+    question,
+    debugMode,
+    responseUrl,
+  },);
 
   return ephemeralText('_Thinking…_ I am querying the Frontis database for you.',);
 }
