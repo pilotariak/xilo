@@ -42,7 +42,7 @@ describe('handleEvent — url_verification', () => {
       challenge: 'my-challenge-value',
     };
 
-    const res = await handleEvent(makeRequest(), payload, env, ctx,);
+    const res = await handleEvent(makeRequest(), payload, env,);
     expect(res.status,).toBe(200,);
     const body = await res.json<{ challenge: string; }>();
     expect(body.challenge,).toBe('my-challenge-value',);
@@ -62,7 +62,7 @@ describe('handleEvent — retry deduplication', () => {
 
     const waitUntilSpy = vi.spyOn(ctx, 'waitUntil',);
     const req = makeRequest({ 'x-slack-retry-num': '1', 'x-slack-retry-reason': 'http_timeout', },);
-    const res = await handleEvent(req, payload, env, ctx,);
+    const res = await handleEvent(req, payload, env,);
 
     expect(res.status,).toBe(200,);
     expect(waitUntilSpy,).not.toHaveBeenCalled();
@@ -80,7 +80,7 @@ describe('handleEvent — app_rate_limited', () => {
     };
 
     const waitUntilSpy = vi.spyOn(ctx, 'waitUntil',);
-    const res = await handleEvent(makeRequest(), payload, env, ctx,);
+    const res = await handleEvent(makeRequest(), payload, env,);
 
     expect(res.status,).toBe(200,);
     expect(waitUntilSpy,).not.toHaveBeenCalled();
@@ -99,7 +99,7 @@ describe('handleEvent — event_callback', () => {
     };
 
     const waitUntilSpy = vi.spyOn(ctx, 'waitUntil',);
-    const res = await handleEvent(makeRequest(), payload, env, ctx,);
+    const res = await handleEvent(makeRequest(), payload, env,);
 
     expect(res.status,).toBe(200,);
     expect(waitUntilSpy,).toHaveBeenCalledOnce();

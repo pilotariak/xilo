@@ -6,8 +6,6 @@
 // SPDX-FileCopyrightText: Copyright (C) Nicolas Lamirault <nicolas.lamirault@gmail.com>
 // SPDX-License-Identifier: Apache-2.0
 
-import { createProvider, } from '../agent/providers/index.js';
-import { runAgent, } from '../agent/runner.js';
 import { createLogger, } from '../logger.js';
 import type { Logger, } from '../logger.js';
 import { postMessage, } from '../slack/api.js';
@@ -32,7 +30,6 @@ export async function handleEvent(
   request: Request,
   payload: SlackEventPayload,
   env: Env,
-  ctx: ExecutionContext,
 ): Promise<Response> {
   const log = createLogger(env, { handler: 'events', },);
 
@@ -72,9 +69,11 @@ export async function handleEvent(
     return new Response('OK', { status: 200, },);
   }
 
-  // 4. Normal event — ack immediately, process in background
+  // 4. Normal event — ack immediately, dispatch to queue for async processing.
+  //    The queue consumer (queue.ts) runs independently with up to 15 min budget,
+  //    so there is no risk of hitting the 30-second waitUntil limit.
   if (payload.type === 'event_callback' && payload.event) {
-    ctx.waitUntil(processEvent(payload, env, log,),);
+    await processEvent(payload, env, log,);
   }
 
   return new Response('OK', { status: 200, },);
@@ -99,43 +98,6 @@ async function processEvent(payload: SlackEventPayload, env: Env, log: Logger,):
     default:
       break;
   }
-}
-
-// ---------------------------------------------------------------------------
-// Agent invocation helpers
-// ---------------------------------------------------------------------------
-
-/** Maximum wall-clock time allowed for the agent, in ms.
- *  Must be comfortably below Cloudflare Workers' 30-second waitUntil limit. */
-const AGENT_TIMEOUT_MS = 25_000;
-
-/**
- * Runs runAgent with a hard wall-clock timeout.
- * Returns the answer string, or throws if the timeout fires first.
- */
-async function runAgentWithTimeout(
-  question: string,
-  gatewayUrl: string,
-  provider: import('../agent/types.js').AgentProvider,
-  debugCallback: ((text: string,) => Promise<void>) | undefined,
-  log: ReturnType<typeof createLogger>,
-): Promise<string> {
-  return Promise.race([
-    runAgent(question, gatewayUrl, provider, debugCallback, log,),
-    new Promise<never>((_, reject,) =>
-      setTimeout(
-        () =>
-          reject(
-            new Error(
-              `Agent timed out after ${
-                AGENT_TIMEOUT_MS / 1000
-              }s. Try a more specific question or use the slash commands (/competitions, /results, …).`,
-            ),
-          ),
-        AGENT_TIMEOUT_MS,
-      )
-    ),
-  ],);
 }
 
 /**
@@ -261,10 +223,11 @@ function parseQuery(
 }
 
 /**
- * Runs the agent for a mention (@xilo ...) and replies in-thread.
+ * Dispatches a mention (@xilo ...) to AGENT_QUEUE and posts a "Thinking…" placeholder.
  *
  * Thread strategy: use event.thread_ts if the mention is already inside a
  * thread; otherwise use event.ts to start a new thread on that message.
+ * The queue consumer (queue.ts) posts the actual answer once the agent completes.
  */
 async function handleMention(
   event: SlackEvent,
@@ -297,22 +260,6 @@ async function handleMention(
     return;
   }
 
-  let provider;
-  try {
-    provider = createProvider(env, log,);
-  } catch (err) {
-    log.error({ err: String(err,), }, 'agent provider configuration error',);
-    await postMessage(
-      env.SLACK_BOT_TOKEN,
-      event.channel,
-      `Agent not configured: ${String(err,)}`,
-      undefined,
-      threadTs,
-    );
-    return;
-  }
-
-  // Post a thinking placeholder so the user knows we're working on it.
   await postMessage(
     env.SLACK_BOT_TOKEN,
     event.channel,
@@ -321,37 +268,18 @@ async function handleMention(
     threadTs,
   ).catch(() => {},);
 
-  const agentQuestion = `League: ${parsed.league}\n\nQuestion: ${parsed.question}`;
-  const channel = event.channel;
-  const debugCallback = debugMode
-    ? async (msg: string,) => {
-      await postMessage(env.SLACK_BOT_TOKEN, channel, msg, undefined, threadTs,);
-    }
-    : undefined;
-
-  try {
-    const answer = await runAgentWithTimeout(
-      agentQuestion,
-      env.FRONTIS_URL,
-      provider,
-      debugCallback,
-      log,
-    );
-    await postMessage(env.SLACK_BOT_TOKEN, channel, answer, undefined, threadTs,);
-  } catch (err) {
-    log.error({ err: String(err,), }, 'agent error in mention handler',);
-    await postMessage(
-      env.SLACK_BOT_TOKEN,
-      channel,
-      `Agent error: ${String(err,)}`,
-      undefined,
-      threadTs,
-    );
-  }
+  await env.AGENT_QUEUE.send({
+    channel: event.channel,
+    threadTs,
+    league: parsed.league,
+    question: parsed.question,
+    debugMode,
+  },);
 }
 
 /**
- * Runs the agent for a direct message and replies in the same DM channel.
+ * Dispatches a direct message to AGENT_QUEUE and posts a "Thinking…" placeholder.
+ * The queue consumer (queue.ts) posts the actual answer once the agent completes.
  */
 async function handleDirectMessage(
   event: SlackEvent,
@@ -381,48 +309,16 @@ async function handleDirectMessage(
     return;
   }
 
-  let provider;
-  try {
-    provider = createProvider(env, log,);
-  } catch (err) {
-    log.error({ err: String(err,), }, 'agent provider configuration error',);
-    await postMessage(
-      env.SLACK_BOT_TOKEN,
-      event.channel,
-      `Agent not configured: ${String(err,)}`,
-    );
-    return;
-  }
-
   await postMessage(
     env.SLACK_BOT_TOKEN,
     event.channel,
     '_Thinking… querying the Frontis database._',
   ).catch(() => {},);
 
-  const agentQuestion = `League: ${parsed.league}\n\nQuestion: ${parsed.question}`;
-  const channel = event.channel;
-  const debugCallback = debugMode
-    ? async (msg: string,) => {
-      await postMessage(env.SLACK_BOT_TOKEN, channel, msg,);
-    }
-    : undefined;
-
-  try {
-    const answer = await runAgentWithTimeout(
-      agentQuestion,
-      env.FRONTIS_URL,
-      provider,
-      debugCallback,
-      log,
-    );
-    await postMessage(env.SLACK_BOT_TOKEN, channel, answer,);
-  } catch (err) {
-    log.error({ err: String(err,), }, 'agent error in DM handler',);
-    await postMessage(
-      env.SLACK_BOT_TOKEN,
-      channel,
-      `Agent error: ${String(err,)}`,
-    );
-  }
+  await env.AGENT_QUEUE.send({
+    channel: event.channel,
+    league: parsed.league,
+    question: parsed.question,
+    debugMode,
+  },);
 }
