@@ -72,6 +72,7 @@ export async function sendDelayedResponse(
 /**
  * Replaces an interactive ephemeral message via response_url.
  * Used in Block Kit interactive flows to update the original message in place.
+ * Throws if Slack returns a non-ok response or an error payload.
  */
 export async function updateInteractiveMessage(
   responseUrl: string,
@@ -87,9 +88,19 @@ export async function updateInteractiveMessage(
     body.blocks = blocks;
   }
 
-  await fetch(responseUrl, {
+  const res = await fetch(responseUrl, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', },
     body: JSON.stringify(body,),
   },);
+
+  if (!res.ok) {
+    let errText = '(unreadable)';
+    try {
+      errText = await res.text();
+    } catch {
+      // ignore
+    }
+    throw new Error(`response_url update failed: HTTP ${res.status} — ${errText}`,);
+  }
 }

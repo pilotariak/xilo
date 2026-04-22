@@ -136,11 +136,11 @@ async function processAction(
           specialtyId,
           categoryId,
         },);
-        await updateInteractiveMessage(
-          responseUrl,
-          'Results',
-          buildResultsBlocks(results,),
-        );
+        log.info({ league, count: results.length, }, 'results fetched, posting to Slack',);
+        const blocks = buildResultsBlocks(results,);
+        log.debug({ blockCount: blocks.length, }, 'built result blocks',);
+        await updateInteractiveMessage(responseUrl, 'Results', blocks,);
+        log.info('results posted successfully',);
         break;
       }
 

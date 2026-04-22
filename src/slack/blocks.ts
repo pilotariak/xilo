@@ -151,8 +151,13 @@ export function buildConfirmBlocks(
   ];
 }
 
+// Slack section block mrkdwn text is capped at 3000 chars.
+// Stay well under that by chunking rows (~150 chars each, max 15 per block).
+const RESULTS_PER_BLOCK = 15;
+
 /**
  * Step 5: display results.
+ * Splits into multiple section blocks to stay under Slack's 3000-char limit.
  */
 export function buildResultsBlocks(results: Result[],): SlackBlock[] {
   if (results.length === 0) {
@@ -165,7 +170,12 @@ export function buildResultsBlocks(results: Result[],): SlackBlock[] {
     const categoryLabel = r.category ? ` — ${r.category.name}` : '';
     return `• ${date}${phaseLabel} — *${r.clubA.name}* vs *${r.clubB.name}* ${score} (${r.specialty.name}${categoryLabel})`;
   },);
-  return [sectionText(['*Results*', ...lines,].join('\n',),),];
+
+  const blocks: SlackBlock[] = [sectionText(`*Results* (${results.length} matches)`,),];
+  for (let i = 0; i < lines.length; i += RESULTS_PER_BLOCK) {
+    blocks.push(sectionText(lines.slice(i, i + RESULTS_PER_BLOCK,).join('\n',),),);
+  }
+  return blocks;
 }
 
 /** Error block used when an interactive step fails. */
