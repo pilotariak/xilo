@@ -156,25 +156,87 @@ export function buildConfirmBlocks(
 const RESULTS_PER_BLOCK = 15;
 
 /**
- * Step 5: display results.
+ * Maps a phase code to an emoji.
+ * Phase order: P → B1T/B2T/B3T → H → Q → D → F
+ */
+function phaseEmoji(phase: string | null,): string {
+  if (!phase) { return '❓'; }
+  const p = phase.trim().toUpperCase();
+  if (p.startsWith('F',)) { return '🏆'; // Finale
+   }
+  if (p.startsWith('D',)) { return '🥊'; // Demi-finale
+   }
+  if (p.startsWith('Q',)) { return '🔷'; // Quart de finale
+   }
+  if (p.startsWith('H',)) { return '🔶'; // Huitième de finale
+   }
+  if (p.startsWith('B',)) { return '🟡'; // Barrages (B1T / B2T / B3T)
+   }
+  return '🔵'; // Poule
+}
+
+/** Groups results by specialty + category, preserving insertion order. */
+function groupBySpecialtyCategory(
+  results: Result[],
+): Array<{ label: string; items: Result[]; }> {
+  const map = new Map<string, { label: string; items: Result[]; }>();
+  for (const r of results) {
+    const key = `${r.specialty.id}:${r.category?.id ?? ''}`;
+    if (!map.has(key,)) {
+      const catPart = r.category ? ` — ${r.category.name}` : '';
+      map.set(key, { label: `${r.specialty.name}${catPart}`, items: [], },);
+    }
+    map.get(key,)!.items.push(r,);
+  }
+  return Array.from(map.values(),);
+}
+
+/**
+ * Step 5: display results grouped by specialty / category.
+ * Each group gets a header block; matches show date, phase emoji, clubs, score.
  * Splits into multiple section blocks to stay under Slack's 3000-char limit.
  */
 export function buildResultsBlocks(results: Result[],): SlackBlock[] {
   if (results.length === 0) {
     return [sectionText('No results found.',),];
   }
-  const lines = results.map((r,) => {
-    const date = r.dateMatch ?? '?';
-    const phaseLabel = r.phase ? ` [${r.phase}]` : '';
-    const score = r.scores ?? '?';
-    const categoryLabel = r.category ? ` — ${r.category.name}` : '';
-    return `• ${date}${phaseLabel} — *${r.clubA.name}* vs *${r.clubB.name}* ${score} (${r.specialty.name}${categoryLabel})`;
-  },);
 
-  const blocks: SlackBlock[] = [sectionText(`*Results* (${results.length} matches)`,),];
-  for (let i = 0; i < lines.length; i += RESULTS_PER_BLOCK) {
-    blocks.push(sectionText(lines.slice(i, i + RESULTS_PER_BLOCK,).join('\n',),),);
+  const groups = groupBySpecialtyCategory(results,);
+  const total = results.length;
+  const blocks: SlackBlock[] = [
+    {
+      type: 'context',
+      elements: [{ type: 'mrkdwn', text: `🏐 *${total}* match${total === 1 ? '' : 'es'} found`, },],
+    },
+  ];
+
+  let first = true;
+  for (const { label, items, } of groups) {
+    if (!first) {
+      blocks.push({ type: 'divider', },);
+    }
+    first = false;
+
+    // Slack header block: plain_text only, max 150 chars
+    const headerText = `🏆 ${label}`;
+    blocks.push({
+      type: 'header',
+      text: { type: 'plain_text', text: headerText.slice(0, 150,), emoji: true, },
+    },);
+
+    const lines = items.map((r,) => {
+      const date = r.dateMatch ?? '?';
+      const emoji = phaseEmoji(r.phase,);
+      const phase = r.phase ? ` ${emoji} \`${r.phase}\`` : '';
+      const score = r.scores ? ` *${r.scores}*` : ' _?_';
+      return `• ${date}${phase} — *${r.clubA.name}* vs *${r.clubB.name}* —${score}`;
+    },);
+
+    for (let i = 0; i < lines.length; i += RESULTS_PER_BLOCK) {
+      blocks.push(sectionText(lines.slice(i, i + RESULTS_PER_BLOCK,).join('\n',),),);
+    }
   }
+
   return blocks;
 }
 

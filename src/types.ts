@@ -126,7 +126,7 @@ export interface SlackOption {
 export interface SlackBlock {
   type: string;
   block_id?: string;
-  text?: { type: string; text: string; };
+  text?: { type: string; text: string; emoji?: boolean; };
   accessory?: {
     type: string;
     action_id: string;
