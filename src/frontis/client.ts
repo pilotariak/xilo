@@ -29,6 +29,16 @@ export interface Competition {
   source_id: string | null;
 }
 
+export interface Player {
+  name: string;
+  number: string | null;
+}
+
+export interface ClubLineup {
+  player1: Player | null;
+  player2: Player | null;
+}
+
 export interface Result {
   id: string;
   dateMatch: string | null;
@@ -36,6 +46,8 @@ export interface Result {
   scores: string | null;
   clubA: { id: string; name: string; };
   clubB: { id: string; name: string; };
+  clubALineup: ClubLineup | null;
+  clubBLineup: ClubLineup | null;
   specialty: { id: string; name: string; };
   category: { id: string; name: string; } | null;
 }
@@ -75,6 +87,8 @@ const LIST_RESULTS = `
       scores
       clubA { id name }
       clubB { id name }
+      clubALineup { player1 { name } player2 { name } }
+      clubBLineup { player1 { name } player2 { name } }
       specialty { id name }
       category { id name }
     }

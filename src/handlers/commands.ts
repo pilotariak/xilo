@@ -11,11 +11,12 @@ import {
   listCategories,
   listClubs,
   listCompetitions,
-  listResults,
   listSpecialties,
 } from '../frontis/client.js';
 import { createLogger, } from '../logger.js';
 import type { Logger, } from '../logger.js';
+import { updateInteractiveMessage, } from '../slack/api.js';
+import { buildCompetitionSelect, } from '../slack/blocks.js';
 import { channelText, ephemeralText, } from '../slack/response.js';
 import type { Env, SlashCommandPayload, } from '../types.js';
 
@@ -25,6 +26,7 @@ import type { Env, SlashCommandPayload, } from '../types.js';
 export async function handleSlashCommand(
   payload: SlashCommandPayload,
   env: Env,
+  ctx: ExecutionContext,
 ): Promise<Response> {
   const log = createLogger(env, {
     handler: 'commands',
@@ -58,7 +60,7 @@ export async function handleSlashCommand(
       return handleCompetitions(env.FRONTIS_URL, payload.text.trim(), log,);
 
     case '/results':
-      return handleResults(env.FRONTIS_URL, payload.text.trim(), log,);
+      return handleResults(payload, env, ctx, log,);
 
     case '/ask':
       return handleAsk(payload, env, log,);
@@ -81,7 +83,7 @@ function buildHelpText(): string {
     '`/specialties <league>` — List all Basque pelota disciplines (e.g. `lcapb`)',
     '`/clubs <league>` — List all clubs for a league',
     '`/competitions <league>` — List all competitions for a league',
-    '`/results <league> [competitionId=x] [specialtyId=x] [categoryId=x] [phase=x]` — List match results',
+    '`/results <league>` — Browse match results interactively',
     '`/ask <league> <question>` — Ask a natural-language question (AI agent)',
   ].join('\n',);
 }
@@ -170,60 +172,43 @@ async function handleCompetitions(
   }
 }
 
-function parseResultsArgs(text: string,): {
-  league: string | undefined;
-  filters: { competitionId?: string; specialtyId?: string; categoryId?: string; phase?: string; };
-} {
-  const [league, ...rest] = text.split(/\s+/,);
-  const filters: {
-    competitionId?: string;
-    specialtyId?: string;
-    categoryId?: string;
-    phase?: string;
-  } = {};
-  for (const token of rest) {
-    const eq = token.indexOf('=',);
-    if (eq > 0) {
-      const key = token.slice(0, eq,);
-      const val = token.slice(eq + 1,);
-      if (
-        key === 'competitionId' || key === 'specialtyId' || key === 'categoryId' || key === 'phase'
-      ) {
-        filters[key] = val;
-      }
-    }
-  }
-  return { league: league || undefined, filters, };
-}
-
-async function handleResults(gatewayUrl: string, text: string, log: Logger,): Promise<Response> {
-  const { league, filters, } = parseResultsArgs(text,);
+async function handleResults(
+  payload: SlashCommandPayload,
+  env: Env,
+  ctx: ExecutionContext,
+  log: Logger,
+): Promise<Response> {
+  const [league,] = payload.text.trim().split(/\s+/,);
   if (!league) {
-    return ephemeralText(
-      [
-        'Usage: `/results <league> [competitionId=x] [specialtyId=x] [categoryId=x]`',
-        'Example: `/results lcapb competitionId=72 categoryId=1`',
-      ].join('\n',),
-    );
+    return ephemeralText('Usage: `/results <league>`\nExample: `/results lcapb`',);
   }
-  try {
-    const results = await listResults(gatewayUrl, league, filters,);
-    log.debug({ league, filters, count: results.length, }, 'results fetched',);
-    if (results.length === 0) {
-      return ephemeralText('No results found.',);
-    }
-    const lines = results.map((r,) => {
-      const date = r.dateMatch ?? '?';
-      const phaseLabel = r.phase ? ` [${r.phase}]` : '';
-      const score = r.scores ?? '?';
-      const categoryLabel = r.category ? ` — ${r.category.name}` : '';
-      return `• ${date}${phaseLabel} — *${r.clubA.name}* vs *${r.clubB.name}* ${score} (${r.specialty.name}${categoryLabel})`;
-    },);
-    return ephemeralText(['*Results*', ...lines,].join('\n',),);
-  } catch (err) {
-    log.error({ err: String(err,), league, filters, }, 'failed to fetch results',);
-    return ephemeralText(`Failed to fetch results: ${String(err,)}`,);
-  }
+
+  // Acknowledge immediately (Slack requires < 3 s), then fetch competitions
+  // and post the select menu via response_url.
+  ctx.waitUntil(
+    (async () => {
+      try {
+        const competitions = await listCompetitions(env.FRONTIS_URL, league,);
+        log.debug(
+          { league, count: competitions.length, },
+          'competitions fetched for interactive results',
+        );
+        await updateInteractiveMessage(
+          payload.response_url,
+          'Choose a competition',
+          buildCompetitionSelect(league, competitions,),
+        );
+      } catch (err) {
+        log.error({ err: String(err,), league, }, 'failed to start interactive results flow',);
+        await updateInteractiveMessage(
+          payload.response_url,
+          `Failed to load competitions: ${String(err,)}`,
+        ).catch(() => undefined);
+      }
+    })(),
+  );
+
+  return ephemeralText('_Loading competitions…_',);
 }
 
 async function handleAsk(
