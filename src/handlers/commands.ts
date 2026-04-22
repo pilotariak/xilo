@@ -16,6 +16,8 @@ import {
 } from '../frontis/client.js';
 import { createLogger, } from '../logger.js';
 import type { Logger, } from '../logger.js';
+import { updateInteractiveMessage, } from '../slack/api.js';
+import { buildCompetitionSelect, } from '../slack/blocks.js';
 import { channelText, ephemeralText, } from '../slack/response.js';
 import type { Env, SlashCommandPayload, } from '../types.js';
 
@@ -25,6 +27,7 @@ import type { Env, SlashCommandPayload, } from '../types.js';
 export async function handleSlashCommand(
   payload: SlashCommandPayload,
   env: Env,
+  ctx: ExecutionContext,
 ): Promise<Response> {
   const log = createLogger(env, {
     handler: 'commands',
@@ -58,7 +61,7 @@ export async function handleSlashCommand(
       return handleCompetitions(env.FRONTIS_URL, payload.text.trim(), log,);
 
     case '/results':
-      return handleResults(env.FRONTIS_URL, payload.text.trim(), log,);
+      return handleResults(payload, env, ctx, log,);
 
     case '/ask':
       return handleAsk(payload, env, log,);
@@ -196,8 +199,13 @@ function parseResultsArgs(text: string,): {
   return { league: league || undefined, filters, };
 }
 
-async function handleResults(gatewayUrl: string, text: string, log: Logger,): Promise<Response> {
-  const { league, filters, } = parseResultsArgs(text,);
+async function handleResults(
+  payload: SlashCommandPayload,
+  env: Env,
+  ctx: ExecutionContext,
+  log: Logger,
+): Promise<Response> {
+  const { league, filters, } = parseResultsArgs(payload.text.trim(),);
   if (!league) {
     return ephemeralText(
       [
@@ -206,24 +214,57 @@ async function handleResults(gatewayUrl: string, text: string, log: Logger,): Pr
       ].join('\n',),
     );
   }
-  try {
-    const results = await listResults(gatewayUrl, league, filters,);
-    log.debug({ league, filters, count: results.length, }, 'results fetched',);
-    if (results.length === 0) {
-      return ephemeralText('No results found.',);
+
+  // Backward compat: if any filter arg is already provided, fetch directly.
+  const hasFilters = Object.keys(filters,).length > 0;
+  if (hasFilters) {
+    try {
+      const results = await listResults(env.FRONTIS_URL, league, filters,);
+      log.debug({ league, filters, count: results.length, }, 'results fetched',);
+      if (results.length === 0) {
+        return ephemeralText('No results found.',);
+      }
+      const lines = results.map((r,) => {
+        const date = r.dateMatch ?? '?';
+        const phaseLabel = r.phase ? ` [${r.phase}]` : '';
+        const score = r.scores ?? '?';
+        const categoryLabel = r.category ? ` — ${r.category.name}` : '';
+        return `• ${date}${phaseLabel} — *${r.clubA.name}* vs *${r.clubB.name}* ${score} (${r.specialty.name}${categoryLabel})`;
+      },);
+      return ephemeralText(['*Results*', ...lines,].join('\n',),);
+    } catch (err) {
+      log.error({ err: String(err,), league, filters, }, 'failed to fetch results',);
+      return ephemeralText(`Failed to fetch results: ${String(err,)}`,);
     }
-    const lines = results.map((r,) => {
-      const date = r.dateMatch ?? '?';
-      const phaseLabel = r.phase ? ` [${r.phase}]` : '';
-      const score = r.scores ?? '?';
-      const categoryLabel = r.category ? ` — ${r.category.name}` : '';
-      return `• ${date}${phaseLabel} — *${r.clubA.name}* vs *${r.clubB.name}* ${score} (${r.specialty.name}${categoryLabel})`;
-    },);
-    return ephemeralText(['*Results*', ...lines,].join('\n',),);
-  } catch (err) {
-    log.error({ err: String(err,), league, filters, }, 'failed to fetch results',);
-    return ephemeralText(`Failed to fetch results: ${String(err,)}`,);
   }
+
+  // Interactive path: only league given — start the guided selection flow.
+  // Acknowledge immediately (Slack requires < 3 s), then fetch competitions
+  // and post the select menu via response_url.
+  ctx.waitUntil(
+    (async () => {
+      try {
+        const competitions = await listCompetitions(env.FRONTIS_URL, league,);
+        log.debug(
+          { league, count: competitions.length, },
+          'competitions fetched for interactive results',
+        );
+        await updateInteractiveMessage(
+          payload.response_url,
+          'Choose a competition',
+          buildCompetitionSelect(league, competitions,),
+        );
+      } catch (err) {
+        log.error({ err: String(err,), league, }, 'failed to start interactive results flow',);
+        await updateInteractiveMessage(
+          payload.response_url,
+          `Failed to load competitions: ${String(err,)}`,
+        ).catch(() => undefined);
+      }
+    })(),
+  );
+
+  return ephemeralText('_Loading competitions…_',);
 }
 
 async function handleAsk(

@@ -9,6 +9,7 @@
 import pkg from '../package.json';
 import { handleSlashCommand, } from './handlers/commands.js';
 import { handleEvent, } from './handlers/events.js';
+import { handleInteractive, } from './handlers/interactive.js';
 import { handleLanding, } from './handlers/landing.js';
 import { handleQueue, } from './handlers/queue.js';
 import { errorResponse, } from './slack/response.js';
@@ -16,7 +17,7 @@ import { verifySlackSignature, } from './slack/verify.js';
 import type { AgentJob, Env, SlackEventPayload, SlashCommandPayload, } from './types.js';
 
 export default {
-  async fetch(request: Request, env: Env, _ctx: ExecutionContext,): Promise<Response> {
+  async fetch(request: Request, env: Env, ctx: ExecutionContext,): Promise<Response> {
     const url = new URL(request.url,);
 
     // Public routes (no Slack signature required)
@@ -60,10 +61,13 @@ export default {
 
     switch (url.pathname) {
       case '/slack/commands':
-        return handleCommands(body, env,);
+        return handleCommands(body, env, ctx,);
 
       case '/slack/events':
         return handleEvents(request, body, env,);
+
+      case '/slack/interactive':
+        return handleInteractive(body, env, ctx,);
 
       default:
         return new Response('Not Found', { status: 404, },);
@@ -84,10 +88,10 @@ function handleVersion(request: Request,): Response {
   },);
 }
 
-function handleCommands(body: string, env: Env,): Promise<Response> {
+function handleCommands(body: string, env: Env, ctx: ExecutionContext,): Promise<Response> {
   const params = new URLSearchParams(body,);
   const payload = Object.fromEntries(params.entries(),) as unknown as SlashCommandPayload;
-  return handleSlashCommand(payload, env,);
+  return handleSlashCommand(payload, env, ctx,);
 }
 
 function handleEvents(request: Request, body: string, env: Env,): Promise<Response> {

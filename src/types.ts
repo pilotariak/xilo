@@ -118,10 +118,51 @@ export interface SlackMessage {
   blocks?: SlackBlock[];
 }
 
+export interface SlackOption {
+  text: { type: 'plain_text'; text: string; emoji?: boolean; };
+  value: string;
+}
+
 export interface SlackBlock {
   type: string;
-  text?: {
+  block_id?: string;
+  text?: { type: string; text: string; };
+  accessory?: {
     type: string;
-    text: string;
+    action_id: string;
+    placeholder: { type: 'plain_text'; text: string; };
+    options: SlackOption[];
   };
+  elements?: object[];
+}
+
+// Slack Interactive Components payload (block_actions)
+// https://docs.slack.dev/reference/interaction-payloads/block-actions
+export interface SlackInteractivePayload {
+  type: 'block_actions';
+  user: { id: string; name: string; };
+  channel: { id: string; };
+  response_url: string;
+  actions: SlackBlockAction[];
+}
+
+export interface SlackBlockAction {
+  type: string;
+  /** Identifies what step we're on: 'competition' | 'specialty' | 'category' | 'confirm' */
+  action_id: string;
+  /**
+   * Encodes accumulated state as colon-delimited segments:
+   *   r:{league}                                        (step 1 → 2)
+   *   r:{league}:{competitionId}                        (step 2 → 3)
+   *   r:{league}:{competitionId}:{specialtyId}          (step 3 → confirm)
+   *   r:{league}:{competitionId}:{specialtyId}:{catId}  (confirm → results)
+   */
+  block_id: string;
+  /** Present for static_select actions; absent for button actions. */
+  selected_option?: {
+    value: string;
+    text: { type: string; text: string; };
+  };
+  /** Present for button actions. */
+  value?: string;
 }
