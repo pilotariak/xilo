@@ -236,10 +236,12 @@ describe('handleInteractive', () => {
       const posted = await capturePostedBody(mock,);
       expect(posted.replace_original,).toBe(true,);
       const blocksJson = JSON.stringify(posted.blocks,);
-      expect(blocksJson,).toContain('Denek Bat',);
+      // Winner (clubA, score 15 > 10) is bolded; loser is plain
+      expect(blocksJson,).toContain('*Denek Bat*',);
       expect(blocksJson,).toContain('Noizbait',);
       expect(blocksJson,).toContain('Finale',);
-      expect(blocksJson,).toContain('15/10',);
+      // Score: winner portion bold, loser plain
+      expect(blocksJson,).toContain('*15*/10',);
     });
   });
 
