@@ -11,7 +11,6 @@ import {
   listCategories,
   listClubs,
   listCompetitions,
-  listResults,
   listSpecialties,
 } from '../frontis/client.js';
 import { createLogger, } from '../logger.js';
@@ -84,7 +83,7 @@ function buildHelpText(): string {
     '`/specialties <league>` — List all Basque pelota disciplines (e.g. `lcapb`)',
     '`/clubs <league>` — List all clubs for a league',
     '`/competitions <league>` — List all competitions for a league',
-    '`/results <league> [competitionId=x] [specialtyId=x] [categoryId=x] [phase=x]` — List match results',
+    '`/results <league>` — Browse match results interactively',
     '`/ask <league> <question>` — Ask a natural-language question (AI agent)',
   ].join('\n',);
 }
@@ -173,72 +172,17 @@ async function handleCompetitions(
   }
 }
 
-function parseResultsArgs(text: string,): {
-  league: string | undefined;
-  filters: { competitionId?: string; specialtyId?: string; categoryId?: string; phase?: string; };
-} {
-  const [league, ...rest] = text.split(/\s+/,);
-  const filters: {
-    competitionId?: string;
-    specialtyId?: string;
-    categoryId?: string;
-    phase?: string;
-  } = {};
-  for (const token of rest) {
-    const eq = token.indexOf('=',);
-    if (eq > 0) {
-      const key = token.slice(0, eq,);
-      const val = token.slice(eq + 1,);
-      if (
-        key === 'competitionId' || key === 'specialtyId' || key === 'categoryId' || key === 'phase'
-      ) {
-        filters[key] = val;
-      }
-    }
-  }
-  return { league: league || undefined, filters, };
-}
-
 async function handleResults(
   payload: SlashCommandPayload,
   env: Env,
   ctx: ExecutionContext,
   log: Logger,
 ): Promise<Response> {
-  const { league, filters, } = parseResultsArgs(payload.text.trim(),);
+  const [league,] = payload.text.trim().split(/\s+/,);
   if (!league) {
-    return ephemeralText(
-      [
-        'Usage: `/results <league> [competitionId=x] [specialtyId=x] [categoryId=x]`',
-        'Example: `/results lcapb competitionId=72 categoryId=1`',
-      ].join('\n',),
-    );
+    return ephemeralText('Usage: `/results <league>`\nExample: `/results lcapb`',);
   }
 
-  // Backward compat: if any filter arg is already provided, fetch directly.
-  const hasFilters = Object.keys(filters,).length > 0;
-  if (hasFilters) {
-    try {
-      const results = await listResults(env.FRONTIS_URL, league, filters,);
-      log.debug({ league, filters, count: results.length, }, 'results fetched',);
-      if (results.length === 0) {
-        return ephemeralText('No results found.',);
-      }
-      const lines = results.map((r,) => {
-        const date = r.dateMatch ?? '?';
-        const phaseLabel = r.phase ? ` [${r.phase}]` : '';
-        const score = r.scores ?? '?';
-        const categoryLabel = r.category ? ` — ${r.category.name}` : '';
-        return `• ${date}${phaseLabel} — *${r.clubA.name}* vs *${r.clubB.name}* ${score} (${r.specialty.name}${categoryLabel})`;
-      },);
-      return ephemeralText(['*Results*', ...lines,].join('\n',),);
-    } catch (err) {
-      log.error({ err: String(err,), league, filters, }, 'failed to fetch results',);
-      return ephemeralText(`Failed to fetch results: ${String(err,)}`,);
-    }
-  }
-
-  // Interactive path: only league given — start the guided selection flow.
   // Acknowledge immediately (Slack requires < 3 s), then fetch competitions
   // and post the select menu via response_url.
   ctx.waitUntil(

@@ -231,99 +231,7 @@ describe('/results', () => {
     expect(body.text,).toContain('Usage',);
   });
 
-  it('returns results filtered by competitionId', async () => {
-    mockFetch({
-      results: [
-        {
-          id: '99',
-          dateMatch: '2025-10-01',
-          phase: 'Finale',
-          scores: '15/10',
-          clubA: { id: '1', name: 'Denek Bat', },
-          clubB: { id: '2', name: 'Noizbait', },
-          specialty: { id: '3', name: 'Place Libre', },
-          category: null,
-        },
-      ],
-    },);
-    const res = await handleSlashCommand(
-      payload('/results', 'alice', 'lcapb competitionId=5',),
-      env,
-      ctx,
-    );
-    const body = await bodyOf(res,) as { text: string; };
-    expect(body.text,).toContain('Denek Bat',);
-    expect(body.text,).toContain('Noizbait',);
-    expect(body.text,).toContain('Finale',);
-    expect(body.text,).toContain('15/10',);
-  });
-
-  it('returns results filtered by multiple named params', async () => {
-    mockFetch({
-      results: [
-        {
-          id: '100',
-          dateMatch: '2025-11-01',
-          phase: '0',
-          scores: '12/15',
-          clubA: { id: '1', name: 'Denek Bat', },
-          clubB: { id: '2', name: 'Noizbait', },
-          specialty: { id: '3', name: 'Place Libre', },
-          category: { id: '1', name: '1ère Série', },
-        },
-      ],
-    },);
-    const res = await handleSlashCommand(
-      payload('/results', 'alice', 'lcapb competitionId=5 categoryId=1',),
-      env,
-      ctx,
-    );
-    const body = await bodyOf(res,) as { text: string; };
-    expect(body.text,).toContain('Denek Bat',);
-    expect(body.text,).toContain('1ère Série',);
-  });
-
-  it('returns results filtered by phase', async () => {
-    mockFetch({
-      results: [
-        {
-          id: '101',
-          dateMatch: '2025-12-01',
-          phase: 'Finale',
-          scores: '15/12',
-          clubA: { id: '1', name: 'Denek Bat', },
-          clubB: { id: '2', name: 'Noizbait', },
-          specialty: { id: '25', name: 'Place Libre', },
-          category: { id: '246', name: '1ère Série', },
-        },
-      ],
-    },);
-    const res = await handleSlashCommand(
-      payload(
-        '/results',
-        'alice',
-        'lcapb competitionId=72 specialtyId=25 categoryId=246 phase=Finale',
-      ),
-      env,
-      ctx,
-    );
-    const body = await bodyOf(res,) as { text: string; };
-    expect(body.text,).toContain('Finale',);
-    expect(body.text,).toContain('Denek Bat',);
-  });
-
-  it('handles empty results gracefully', async () => {
-    mockFetch({ results: [], },);
-    const res = await handleSlashCommand(
-      payload('/results', 'alice', 'lcapb competitionId=999',),
-      env,
-      ctx,
-    );
-    const body = await bodyOf(res,) as { text: string; };
-    expect(body.text,).toContain('No results found',);
-  });
-
-  it('interactive: returns loading ack and posts competition select via response_url', async () => {
+  it('returns loading ack and posts competition select via response_url', async () => {
     const fetchMock = vi.fn()
       // First call: GraphQL listCompetitions
       .mockResolvedValueOnce({
@@ -367,7 +275,7 @@ describe('/results', () => {
     expect(JSON.stringify(posted.blocks,),).toContain('Championnat LCAPB 2025-2026',);
   });
 
-  it('interactive: overflow (>100 competitions) returns info block, no select', async () => {
+  it('overflow (>100 competitions) returns info block, no select', async () => {
     const manyCompetitions = Array.from({ length: 101, }, (_, i,) => ({
       id: String(i,),
       name: `Comp ${i}`,
