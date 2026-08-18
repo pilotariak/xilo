@@ -1,5 +1,18 @@
 # Changelog
 
+## [0.4.0](https://github.com/pilotariak/xilo/compare/xilo-v0.3.0...xilo-v0.4.0) (2026-08-18)
+
+
+### 🚀 Features
+
+* add intent-based routing and fix French query parsing ([#9](https://github.com/pilotariak/xilo/issues/9)) ([64fc970](https://github.com/pilotariak/xilo/commit/64fc970d09492c420ad68c53e8b2ebe907b4138d))
+* **worker:** add interactive /results flow with Block Kit select menus ([#12](https://github.com/pilotariak/xilo/issues/12)) ([e2c55fa](https://github.com/pilotariak/xilo/commit/e2c55fa62f620e950e4fe4f6a78fbfe8bb6168e4))
+
+
+### 📚 Documentation
+
+* add AGENTS.md for AI agent context ([#13](https://github.com/pilotariak/xilo/issues/13)) ([0640581](https://github.com/pilotariak/xilo/commit/0640581dd8c9297a5401e6d8656025aa0995a6c7))
+
 ## [0.3.0](https://github.com/pilotariak/xilo/compare/xilo-v0.2.0...xilo-v0.3.0) (2026-04-20)
 
 ### 🚀 Features
