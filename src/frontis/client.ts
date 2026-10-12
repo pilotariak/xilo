@@ -56,7 +56,7 @@ export interface Result {
 
 const LIST_SPECIALTIES = `
   query ListSpecialties {
-    specialties { id name }
+    specialties(enabled: true) { id name }
   }
 `;
 
@@ -68,13 +68,13 @@ const LIST_CLUBS = `
 
 const LIST_CATEGORIES = `
   query ListCategories {
-    categories { id name }
+    categories(enabled: true) { id name }
   }
 `;
 
 const LIST_COMPETITIONS = `
   query ListCompetitions {
-    competitions { id name source_id }
+    competitions(enabled: true) { id name source_id }
   }
 `;
 
